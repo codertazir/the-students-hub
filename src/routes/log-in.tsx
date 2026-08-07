@@ -35,8 +35,14 @@ function LoginPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email) return toast.error("Enter your school email address.");
-    if (password.length < 4) return toast.error("Password must be at least 4 characters.");
+    if (!email) {
+      toast.error("Enter your school email address.");
+      return;
+    }
+    if (password.length < 4) {
+      toast.error("Password must be at least 4 characters.");
+      return;
+    }
     setBusy(true);
     try {
       const { created } = await signIn(email, password);
