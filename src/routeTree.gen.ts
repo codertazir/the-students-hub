@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashRouteImport } from './routes/_dash'
 import { Route as LogInRouteImport } from './routes/log-in'
+import { Route as DashHomeRouteImport } from './routes/_dash.home'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashRoute = DashRouteImport.update({
+  id: '/_dash',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogInRoute = LogInRouteImport.update({
@@ -22,30 +28,40 @@ const LogInRoute = LogInRouteImport.update({
   path: '/log-in',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashHomeRoute = DashHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => DashRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/log-in': typeof LogInRoute
+  '/home': typeof DashHomeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/log-in': typeof LogInRoute
+  '/home': typeof DashHomeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_dash': typeof DashRouteWithChildren
   '/log-in': typeof LogInRoute
+  '/_dash/home': typeof DashHomeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/log-in'
+  fullPaths: '/' | '/log-in' | '/home'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/log-in'
-  id: '__root__' | '/' | '/log-in'
+  to: '/' | '/log-in' | '/home'
+  id: '__root__' | '/' | '/_dash' | '/log-in' | '/_dash/home'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashRoute: typeof DashRouteWithChildren
   LogInRoute: typeof LogInRoute
 }
 
@@ -58,6 +74,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_dash': {
+      id: '/_dash'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof DashRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/log-in': {
       id: '/log-in'
       path: '/log-in'
@@ -65,11 +88,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LogInRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_dash/home': {
+      id: '/_dash/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof DashHomeRouteImport
+      parentRoute: typeof DashRoute
+    }
   }
 }
 
+interface DashRouteChildren {
+  DashHomeRoute: typeof DashHomeRoute
+}
+
+const DashRouteChildren: DashRouteChildren = {
+  DashHomeRoute: DashHomeRoute,
+}
+
+const DashRouteWithChildren = DashRoute._addFileChildren(DashRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashRoute: DashRouteWithChildren,
   LogInRoute: LogInRoute,
 }
 export const routeTree = rootRouteImport
