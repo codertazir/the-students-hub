@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashRouteImport } from './routes/_dash'
 import { Route as LogInRouteImport } from './routes/log-in'
 import { Route as DashHomeRouteImport } from './routes/_dash.home'
+import { Route as DashNotesRouteImport } from './routes/_dash.notes'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -33,16 +34,23 @@ const DashHomeRoute = DashHomeRouteImport.update({
   path: '/home',
   getParentRoute: () => DashRoute,
 } as any)
+const DashNotesRoute = DashNotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
+  getParentRoute: () => DashRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/log-in': typeof LogInRoute
   '/home': typeof DashHomeRoute
+  '/notes': typeof DashNotesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/log-in': typeof LogInRoute
   '/home': typeof DashHomeRoute
+  '/notes': typeof DashNotesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -50,13 +58,14 @@ export interface FileRoutesById {
   '/_dash': typeof DashRouteWithChildren
   '/log-in': typeof LogInRoute
   '/_dash/home': typeof DashHomeRoute
+  '/_dash/notes': typeof DashNotesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/log-in' | '/home'
+  fullPaths: '/' | '/log-in' | '/home' | '/notes'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/log-in' | '/home'
-  id: '__root__' | '/' | '/_dash' | '/log-in' | '/_dash/home'
+  to: '/' | '/log-in' | '/home' | '/notes'
+  id: '__root__' | '/' | '/_dash' | '/log-in' | '/_dash/home' | '/_dash/notes'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -95,15 +104,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashHomeRouteImport
       parentRoute: typeof DashRoute
     }
+    '/_dash/notes': {
+      id: '/_dash/notes'
+      path: '/notes'
+      fullPath: '/notes'
+      preLoaderRoute: typeof DashNotesRouteImport
+      parentRoute: typeof DashRoute
+    }
   }
 }
 
 interface DashRouteChildren {
   DashHomeRoute: typeof DashHomeRoute
+  DashNotesRoute: typeof DashNotesRoute
 }
 
 const DashRouteChildren: DashRouteChildren = {
   DashHomeRoute: DashHomeRoute,
+  DashNotesRoute: DashNotesRoute,
 }
 
 const DashRouteWithChildren = DashRoute._addFileChildren(DashRouteChildren)
