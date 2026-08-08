@@ -30,3 +30,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Prisma generated client (regenerated on install)
+src/generated/prisma

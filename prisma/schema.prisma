@@ -1,0 +1,85 @@
+// The Students Hub — Neon PostgreSQL schema
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["driverAdapters", "queryCompiler"]
+  moduleFormat    = "esm"
+  engineType      = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  user
+  admin
+}
+
+model User {
+  id             String     @id @default(cuid())
+  email          String     @unique
+  password       String
+  name           String     @default("")
+  profilePicture String?
+  phoneNumber    String?
+  dateOfBirth    String?
+  role           Role       @default(user)
+  createdAt      DateTime   @default(now())
+
+  notes     Note[]
+  events    Event[]
+  loginLogs LoginLog[]
+
+  @@map("users")
+}
+
+model LoginLog {
+  id        String   @id @default(cuid())
+  email     String
+  timestamp DateTime @default(now())
+  ipAddress String?
+  device    String?
+  userAgent String?
+  browser   String?
+  os        String?
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([timestamp])
+  @@map("login_logs")
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  date      DateTime @default(now())
+  anonymous Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([createdById])
+  @@map("notes")
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @default("")
+  images      Json     @default("[]")
+  date        DateTime @default(now())
+  location    String?
+  createdAt   DateTime @default(now())
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([createdById])
+  @@map("events")
+}
