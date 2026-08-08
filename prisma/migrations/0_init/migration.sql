@@ -1,0 +1,51 @@
+DO $$ BEGIN CREATE TYPE "Role" AS ENUM ('user','admin'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS "users" (
+  "id" TEXT PRIMARY KEY,
+  "email" TEXT NOT NULL,
+  "password" TEXT NOT NULL,
+  "name" TEXT NOT NULL DEFAULT '',
+  "profilePicture" TEXT,
+  "phoneNumber" TEXT,
+  "dateOfBirth" TEXT,
+  "role" "Role" NOT NULL DEFAULT 'user',
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "users_email_key" ON "users"("email");
+
+CREATE TABLE IF NOT EXISTS "login_logs" (
+  "id" TEXT PRIMARY KEY,
+  "email" TEXT NOT NULL,
+  "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "ipAddress" TEXT,
+  "device" TEXT,
+  "userAgent" TEXT,
+  "browser" TEXT,
+  "os" TEXT,
+  "userId" TEXT REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+CREATE INDEX IF NOT EXISTS "login_logs_userId_idx" ON "login_logs"("userId");
+CREATE INDEX IF NOT EXISTS "login_logs_timestamp_idx" ON "login_logs"("timestamp");
+
+CREATE TABLE IF NOT EXISTS "notes" (
+  "id" TEXT PRIMARY KEY,
+  "title" TEXT NOT NULL,
+  "content" TEXT NOT NULL,
+  "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "anonymous" BOOLEAN NOT NULL DEFAULT false,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "createdById" TEXT NOT NULL REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+CREATE INDEX IF NOT EXISTS "notes_createdById_idx" ON "notes"("createdById");
+
+CREATE TABLE IF NOT EXISTS "events" (
+  "id" TEXT PRIMARY KEY,
+  "title" TEXT NOT NULL,
+  "description" TEXT NOT NULL DEFAULT '',
+  "images" JSONB NOT NULL DEFAULT '[]',
+  "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "location" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "createdById" TEXT NOT NULL REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+CREATE INDEX IF NOT EXISTS "events_createdById_idx" ON "events"("createdById");
