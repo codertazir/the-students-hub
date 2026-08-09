@@ -1,10 +1,9 @@
 /**
- * Local demo data layer for The Students Hub.
+ * Local reactive data layer for The Students Hub.
  *
- * NOTE: this build intentionally has no backend yet. Everything is persisted in
- * localStorage and synchronised across open tabs via the `storage` event, which
- * powers the "real-time" behaviour (presence, live typing, notifications).
- * Passwords are stored ONLY as salted SHA-256 hashes — never in plain text.
+ * Persisted in localStorage and mirrored to PostgreSQL (see lib/auth.tsx) for
+ * users, login logs, notes and events. Cross-tab sync via the `storage` event
+ * powers the "live" behaviour (presence, collaborative typing, notifications).
  */
 
 export const EMAIL_DOMAIN = "@isg.edu.sa";
@@ -41,16 +40,34 @@ export interface ActivityLog {
   id: ID;
   userId: ID;
   email: string;
-  area: "auth" | "notes" | "events" | "account";
+  area: "auth" | "notes" | "events" | "account" | "tasks" | "admin";
   action: string;
   ts: number;
+}
+
+/** Call to action shared by announcements, suggestions and notifications. */
+export interface CTA {
+  label: string;
+  /** Internal route (starts with "/") or absolute URL. */
+  to: string;
 }
 
 export interface Announcement {
   id: ID;
   title: string;
   body: string;
+  ts: number;
   pinned: boolean;
+  cta?: CTA;
+}
+
+export interface Suggestion {
+  id: ID;
+  title: string;
+  body: string;
+  cta?: CTA;
+  /** "all" or an explicit list of user ids. */
+  targets: "all" | ID[];
   ts: number;
 }
 
@@ -59,7 +76,11 @@ export interface Task {
   title: string;
   due: string;
   done: boolean;
+  createdBy: ID | "system";
+  /** "all" for club-wide tasks, otherwise the owner's user id. */
   assignedTo: "all" | ID;
+  createdAt: number;
+  completedAt?: number;
 }
 
 export interface NotificationItem {
@@ -68,38 +89,89 @@ export interface NotificationItem {
   body: string;
   ts: number;
   read: boolean;
-  cta?: { label: string; to: string };
+  /** "all" or a single recipient. */
+  targets: "all" | ID[];
+  cta?: CTA;
 }
 
-export interface NoteResponse {
-  id: ID;
-  boxId: ID;
-  userId: ID;
-  authorName: string;
-  anonymous: boolean;
-  text: string;
-  ts: number;
+export interface Funds {
+  total: number;
+  currency: string;
+  label: string;
+  note: string;
+  updatedAt: number;
 }
 
-export interface NoteBox {
+export interface Meeting {
   id: ID;
-  prompt: string;
-  plainOnly: boolean;
+  title: string;
+  date: string;
+  time: string;
+  room: string;
+  agenda: string[];
+  note: string;
+  visible: boolean;
+}
+
+/* ---------------- notes ---------------- */
+
+export type NoteBlockKind = "heading" | "text" | "callout" | "divider" | "input";
+
+export interface NoteBlock {
+  id: ID;
+  kind: NoteBlockKind;
+  /** Admin-authored content (heading text, paragraph, callout, or input prompt). */
+  content: string;
+  /** For "input" blocks: the live shared answer everyone can see and edit. */
+  shared?: string;
+  lastEditor?: string;
+  lastEditedAt?: number;
+  /** For "input" blocks: allow anonymous contribution labels. */
+  allowAnonymous?: boolean;
 }
 
 export interface Note {
   id: ID;
+  /** Admin-set display number, e.g. 1 -> "#1". */
+  number: number;
   title: string;
+  /** Admin-set date and time label shown on the card. */
+  dateLabel: string;
   meetingDate: string;
-  html: string;
-  boxes: NoteBox[];
-  responses: NoteResponse[];
+  /** Square preview: emoji + accent used for the visual header. */
+  previewEmoji: string;
+  previewAccent: string;
+  blocks: NoteBlock[];
+  createdAt: number;
 }
+
+/* ---------------- events ---------------- */
 
 export interface PollOption {
   id: ID;
   label: string;
   votes: ID[];
+}
+
+export interface EventFile {
+  id: ID;
+  name: string;
+  by: string;
+  ts: number;
+}
+
+export type EventCardType = "poll" | "budget" | "stats" | "info" | "folder";
+
+export interface EventCard {
+  id: ID;
+  type: EventCardType;
+  title: string;
+  visible: boolean;
+  poll?: { question: string; options: PollOption[] };
+  budget?: { total: number; currency: string; allocations: { id: ID; label: string; amount: number }[] };
+  stats?: { id: ID; label: string; value: string }[];
+  info?: { body: string };
+  folder?: { uploadsAllowed: boolean; files: EventFile[] };
 }
 
 export interface EventComment {
@@ -111,31 +183,21 @@ export interface EventComment {
   ts: number;
 }
 
-export interface EventFolder {
-  id: ID;
-  name: string;
-  uploadsAllowed: boolean;
-  files: { id: ID; name: string; by: string }[];
-}
-
 export interface ClubEvent {
   id: ID;
+  number: number;
   title: string;
+  dateLabel: string;
   date: string;
   location: string;
-  notes: string;
-  poll?: { question: string; options: PollOption[] };
+  previewEmoji: string;
+  previewAccent: string;
+  completed: boolean;
+  /** Admin-authored left-hand content. */
+  blocks: NoteBlock[];
+  cards: EventCard[];
   comments: EventComment[];
-  folders: EventFolder[];
-}
-
-export interface Meeting {
-  id: ID;
-  title: string;
-  date: string;
-  time: string;
-  room: string;
-  agenda: string[];
+  createdAt: number;
 }
 
 export interface DB {
@@ -143,21 +205,32 @@ export interface DB {
   logins: LoginRecord[];
   activity: ActivityLog[];
   announcements: Announcement[];
+  suggestions: Suggestion[];
   tasks: Task[];
   notifications: NotificationItem[];
   notes: Note[];
   events: ClubEvent[];
   meeting: Meeting;
+  funds: Funds;
   presence: Record<ID, number>;
   typing: Record<string, { name: string; ts: number }>;
   sessionUserId: ID | null;
 }
 
-const KEY = "tsh.db.v1";
+const KEY = "tsh.db.v2";
+export const ONLINE_WINDOW_MS = 45_000;
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
-function seed(): DB {
+const day = 86_400_000;
+const iso = (offset: number) => new Date(Date.now() + offset * day).toISOString().slice(0, 10);
+const pretty = (offset: number, time: string) =>
+  `${new Date(Date.now() + offset * day).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })} · ${time}`;
+
+const ACCENTS = ["#1d4ed8", "#0f766e", "#7c3aed", "#b45309", "#be123c", "#0369a1"];
+export const previewAccent = (i: number) => ACCENTS[i % ACCENTS.length]!;
+
+export function seed(): DB {
   return {
     users: [],
     logins: [],
@@ -167,108 +240,243 @@ function seed(): DB {
         id: uid(),
         title: "Club photo day moved to Sunday",
         body: "Bring your ID badge and wear the club hoodie. We meet at the main atrium at 8:15.",
+        ts: Date.now() - 3_600_000,
         pinned: true,
-        ts: Date.now() - 3600_000,
+        cta: { label: "See events", to: "/events" },
       },
       {
         id: uid(),
         title: "New note template for meetings",
-        body: "Meeting notes now include response boxes — you can answer normally or anonymously.",
+        body: "Meeting notes are collaborative now — type straight into the response areas.",
+        ts: Date.now() - day,
         pinned: true,
-        ts: Date.now() - 86_400_000,
       },
     ],
+    suggestions: [],
     tasks: [
-      { id: uid(), title: "Submit your event idea for the winter showcase", due: "Sun", done: false, assignedTo: "all" },
-      { id: uid(), title: "Read the leadership handbook (pages 4-9)", due: "Tue", done: false, assignedTo: "all" },
-      { id: uid(), title: "Confirm attendance for the community drive", due: "Thu", done: true, assignedTo: "all" },
+      {
+        id: uid(),
+        title: "Submit your event idea for the winter showcase",
+        due: "Sunday",
+        done: false,
+        createdBy: "system",
+        assignedTo: "all",
+        createdAt: Date.now() - day,
+      },
+      {
+        id: uid(),
+        title: "Read the leadership handbook (pages 4–9)",
+        due: "Tuesday",
+        done: false,
+        createdBy: "system",
+        assignedTo: "all",
+        createdAt: Date.now() - 2 * day,
+      },
+      {
+        id: uid(),
+        title: "Confirm attendance for the community drive",
+        due: "Thursday",
+        done: false,
+        createdBy: "system",
+        assignedTo: "all",
+        createdAt: Date.now() - 3 * day,
+      },
+      {
+        id: uid(),
+        title: "Collect the poster printing quote",
+        due: "Friday",
+        done: true,
+        createdBy: "system",
+        assignedTo: "all",
+        createdAt: Date.now() - 5 * day,
+        completedAt: Date.now() - 4 * day,
+      },
     ],
     notifications: [
       {
         id: uid(),
         title: "Meeting notes are open",
-        body: "This week's response boxes are live. Add your thoughts before Friday.",
-        ts: Date.now() - 1800_000,
+        body: "This week's response areas are live. Add your thoughts before Friday.",
+        ts: Date.now() - 1_800_000,
         read: false,
+        targets: "all",
         cta: { label: "Open notes", to: "/notes" },
-      },
-      {
-        id: uid(),
-        title: "Vote on the showcase theme",
-        body: "The poll closes on Sunday evening.",
-        ts: Date.now() - 7200_000,
-        read: false,
-        cta: { label: "Go to events", to: "/events" },
       },
     ],
     notes: [
       {
         id: uid(),
-        title: "Weekly meeting — planning the winter showcase",
-        meetingDate: new Date().toISOString().slice(0, 10),
-        html: "<h3>Agenda</h3><p>We reviewed the <strong>showcase budget</strong>, the volunteer rota and the <em>media team</em> hand-off.</p><ul><li>Budget approved at 4,000 SAR</li><li>Two volunteers still needed for setup</li><li>Posters due next Wednesday</li></ul>",
-        boxes: [
-          { id: "box-1", prompt: "What should we improve about our last event?", plainOnly: true },
-          { id: "box-2", prompt: "Any concerns you'd rather raise privately?", plainOnly: true },
+        number: 2,
+        title: "Planning the winter showcase",
+        dateLabel: pretty(-1, "13:40"),
+        meetingDate: iso(-1),
+        previewEmoji: "❄️",
+        previewAccent: ACCENTS[0]!,
+        createdAt: Date.now() - day,
+        blocks: [
+          { id: uid(), kind: "heading", content: "Agenda" },
+          {
+            id: uid(),
+            kind: "text",
+            content:
+              "We reviewed the showcase budget, the volunteer rota and the media team hand-off. Budget approved at 4,000 SAR; two volunteers still needed for setup.",
+          },
+          { id: uid(), kind: "callout", content: "Posters are due next Wednesday — send drafts to the media channel." },
+          { id: uid(), kind: "divider", content: "" },
+          {
+            id: uid(),
+            kind: "input",
+            content: "What should we improve about our last event?",
+            shared: "",
+            allowAnonymous: true,
+          },
         ],
-        responses: [],
       },
       {
         id: uid(),
-        title: "Kick-off meeting — roles and expectations",
-        meetingDate: new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10),
-        html: "<p>Introduced the committee, agreed on meeting cadence (every Sunday, 3rd period) and set up the notes workflow.</p>",
-        boxes: [{ id: "box-3", prompt: "Which committee would you like to join?", plainOnly: true }],
-        responses: [],
+        number: 1,
+        title: "Kick-off — roles and expectations",
+        dateLabel: pretty(-8, "13:40"),
+        meetingDate: iso(-8),
+        previewEmoji: "🚀",
+        previewAccent: ACCENTS[1]!,
+        createdAt: Date.now() - 8 * day,
+        blocks: [
+          { id: uid(), kind: "heading", content: "Welcome to the club" },
+          {
+            id: uid(),
+            kind: "text",
+            content:
+              "Introduced the committee, agreed on meeting cadence (every Sunday, 3rd period) and set up the notes workflow.",
+          },
+          { id: uid(), kind: "input", content: "Which committee would you like to join?", shared: "", allowAnonymous: false },
+        ],
       },
     ],
     events: [
       {
         id: uid(),
+        number: 3,
         title: "Winter Showcase",
-        date: new Date(Date.now() + 9 * 86_400_000).toISOString().slice(0, 10),
+        dateLabel: pretty(9, "17:00"),
+        date: iso(9),
         location: "Main Hall",
-        notes: "Doors open 17:00. Each committee gets a booth and a five minute stage slot.",
-        poll: {
-          question: "Which theme should we run with?",
-          options: [
-            { id: uid(), label: "Neon night", votes: [] },
-            { id: uid(), label: "Retro arcade", votes: [] },
-            { id: uid(), label: "Space station", votes: [] },
-          ],
-        },
-        comments: [],
-        folders: [
-          { id: uid(), name: "Posters", uploadsAllowed: true, files: [] },
-          { id: uid(), name: "Official photos", uploadsAllowed: false, files: [] },
+        previewEmoji: "🎭",
+        previewAccent: ACCENTS[0]!,
+        completed: false,
+        createdAt: Date.now() - day,
+        blocks: [
+          { id: uid(), kind: "heading", content: "Run of show" },
+          {
+            id: uid(),
+            kind: "text",
+            content: "Doors open 17:00. Each committee gets a booth and a five minute stage slot.",
+          },
+          { id: uid(), kind: "input", content: "Which slot would your committee prefer?", shared: "", allowAnonymous: false },
         ],
+        cards: [
+          {
+            id: uid(),
+            type: "poll",
+            title: "Theme vote",
+            visible: true,
+            poll: {
+              question: "Which theme should we run with?",
+              options: [
+                { id: uid(), label: "Neon night", votes: [] },
+                { id: uid(), label: "Retro arcade", votes: [] },
+                { id: uid(), label: "Space station", votes: [] },
+              ],
+            },
+          },
+          {
+            id: uid(),
+            type: "budget",
+            title: "Budget",
+            visible: true,
+            budget: {
+              total: 4000,
+              currency: "SAR",
+              allocations: [
+                { id: uid(), label: "Stage & lighting", amount: 1800 },
+                { id: uid(), label: "Printing", amount: 700 },
+                { id: uid(), label: "Refreshments", amount: 900 },
+              ],
+            },
+          },
+          {
+            id: uid(),
+            type: "stats",
+            title: "At a glance",
+            visible: true,
+            stats: [
+              { id: uid(), label: "Booths", value: "8" },
+              { id: uid(), label: "Volunteers", value: "12" },
+              { id: uid(), label: "Expected guests", value: "240" },
+            ],
+          },
+          {
+            id: uid(),
+            type: "folder",
+            title: "Posters",
+            visible: true,
+            folder: { uploadsAllowed: true, files: [] },
+          },
+        ],
+        comments: [],
       },
       {
         id: uid(),
+        number: 2,
         title: "Community Drive",
-        date: new Date(Date.now() + 20 * 86_400_000).toISOString().slice(0, 10),
+        dateLabel: pretty(20, "09:30"),
+        date: iso(20),
         location: "Sports Court",
-        notes: "Collecting books and stationery for the partner school.",
+        previewEmoji: "📚",
+        previewAccent: ACCENTS[1]!,
+        completed: false,
+        createdAt: Date.now() - 2 * day,
+        blocks: [
+          { id: uid(), kind: "text", content: "Collecting books and stationery for the partner school." },
+        ],
+        cards: [
+          { id: uid(), type: "info", title: "Drop-off point", visible: true, info: { body: "Boxes are next to the library entrance all week." } },
+          { id: uid(), type: "folder", title: "Sign-up sheets", visible: true, folder: { uploadsAllowed: true, files: [] } },
+        ],
         comments: [],
-        folders: [{ id: uid(), name: "Sign-up sheets", uploadsAllowed: true, files: [] }],
       },
       {
         id: uid(),
+        number: 1,
         title: "Leadership Workshop",
-        date: new Date(Date.now() + 34 * 86_400_000).toISOString().slice(0, 10),
+        dateLabel: pretty(-12, "14:10"),
+        date: iso(-12),
         location: "Room B204",
-        notes: "Guest speaker session on running student teams.",
+        previewEmoji: "🎤",
+        previewAccent: ACCENTS[2]!,
+        completed: true,
+        createdAt: Date.now() - 20 * day,
+        blocks: [{ id: uid(), kind: "text", content: "Guest speaker session on running student teams." }],
+        cards: [{ id: uid(), type: "stats", title: "Turnout", visible: true, stats: [{ id: uid(), label: "Attended", value: "31" }] }],
         comments: [],
-        folders: [],
       },
     ],
     meeting: {
       id: uid(),
       title: "Weekly club meeting",
-      date: new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10),
+      date: iso(2),
       time: "13:40 — 14:25",
       room: "Room B204",
       agenda: ["Showcase run-through", "Budget sign-off", "Volunteer rota", "Open floor"],
+      note: "Bring your committee updates.",
+      visible: true,
+    },
+    funds: {
+      total: 12450,
+      currency: "SAR",
+      label: "Club funds",
+      note: "Updated after the showcase sign-off.",
+      updatedAt: Date.now(),
     },
     presence: {},
     typing: {},
@@ -279,12 +487,54 @@ function seed(): DB {
 let cache: DB | null = null;
 const listeners = new Set<() => void>();
 
+/** Fills in anything a stored (older) snapshot is missing. */
+function normalize(db: Partial<DB>): DB {
+  const base = seed();
+  const merged: DB = { ...base, ...db } as DB;
+  merged.users ??= [];
+  merged.logins ??= [];
+  merged.activity ??= [];
+  merged.announcements ??= base.announcements;
+  merged.suggestions ??= [];
+  merged.tasks ??= base.tasks;
+  merged.notifications ??= [];
+  merged.notes ??= base.notes;
+  merged.events ??= base.events;
+  merged.meeting = { ...base.meeting, ...(db.meeting ?? {}) };
+  merged.funds = { ...base.funds, ...(db.funds ?? {}) };
+  merged.presence ??= {};
+  merged.typing ??= {};
+  merged.notifications = merged.notifications.map((n) => ({ ...n, targets: n.targets ?? "all" }));
+  merged.notes = merged.notes.map((n, i) => ({
+    ...n,
+    number: n.number ?? i + 1,
+    blocks: n.blocks ?? [],
+    previewEmoji: n.previewEmoji ?? "📝",
+    previewAccent: n.previewAccent ?? previewAccent(i),
+    dateLabel: n.dateLabel ?? n.meetingDate ?? "",
+    createdAt: n.createdAt ?? Date.now(),
+  }));
+  merged.events = merged.events.map((e, i) => ({
+    ...e,
+    number: e.number ?? i + 1,
+    blocks: e.blocks ?? [],
+    cards: e.cards ?? [],
+    comments: e.comments ?? [],
+    previewEmoji: e.previewEmoji ?? "🎉",
+    previewAccent: e.previewAccent ?? previewAccent(i),
+    dateLabel: e.dateLabel ?? e.date ?? "",
+    completed: e.completed ?? false,
+    createdAt: e.createdAt ?? Date.now(),
+  }));
+  return merged;
+}
+
 export function getDB(): DB {
   if (cache) return cache;
   if (typeof window === "undefined") return (cache = seed());
   try {
     const raw = window.localStorage.getItem(KEY);
-    cache = raw ? (JSON.parse(raw) as DB) : seed();
+    cache = raw ? normalize(JSON.parse(raw) as Partial<DB>) : seed();
   } catch {
     cache = seed();
   }
@@ -299,7 +549,7 @@ export function setDB(mutate: (db: DB) => void) {
     try {
       window.localStorage.setItem(KEY, JSON.stringify(cache));
     } catch {
-      /* storage full — keep in-memory copy */
+      /* storage full — keep the in-memory copy */
     }
   }
   listeners.forEach((l) => l());
@@ -318,6 +568,32 @@ export function subscribe(fn: () => void) {
     listeners.delete(fn);
     if (typeof window !== "undefined") window.removeEventListener("storage", onStorage);
   };
+}
+
+/* ---------------- derived helpers ---------------- */
+
+export function visibleTasks(db: DB, userId: ID) {
+  return db.tasks.filter((t) => t.assignedTo === "all" || t.assignedTo === userId || t.createdBy === userId);
+}
+
+export function visibleSuggestions(db: DB, userId: ID) {
+  return db.suggestions.filter((s) => s.targets === "all" || s.targets.includes(userId));
+}
+
+export function visibleNotifications(db: DB, userId: ID) {
+  return db.notifications.filter((n) => n.targets === "all" || n.targets.includes(userId));
+}
+
+export function notify(item: Omit<NotificationItem, "id" | "ts" | "read">) {
+  setDB((d) => {
+    d.notifications.unshift({ id: uid(), ts: Date.now(), read: false, ...item });
+    d.notifications = d.notifications.slice(0, 80);
+  });
+}
+
+export function userLabel(db: DB, id: ID) {
+  const u = db.users.find((x) => x.id === id);
+  return u?.fullName || u?.email || "Unknown member";
 }
 
 /* ---------------- security helpers ---------------- */
@@ -369,7 +645,6 @@ export function describeClient() {
   return { ua, os, browser, device };
 }
 
-/** Placeholder client address: a real deployment records this server-side. */
 export async function lookupIp() {
   try {
     const res = await fetch("https://api.ipify.org?format=json");
