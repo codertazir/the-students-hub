@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, CalendarDays, NotebookPen, ShieldCheck } from "lucide-react";
-import laptop from "@/assets/dashboard-laptop.jpg";
+import { useEffect, useState } from "react";
+import { ArrowRight, CalendarDays, CheckCircle2, Circle, NotebookPen, Wallet } from "lucide-react";
+import logo from "@/assets/students-hub-logo.png.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -9,82 +10,195 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "The hub used for the students club. Meeting notes, events, announcements and tasks in one clean workspace.",
+          "The home base for the students club: meeting notes, events, tasks and announcements in one clean workspace.",
       },
       { property: "og:title", content: "The Students Hub" },
-      { property: "og:description", content: "The hub used for the students club." },
+      { property: "og:description", content: "Meeting notes, events and tasks for the students club." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Landing,
 });
 
-const highlights = [
-  { icon: NotebookPen, title: "Meeting notes", body: "Every meeting written up, with response boxes you can answer openly or anonymously." },
-  { icon: CalendarDays, title: "Events & polls", body: "Plan events, vote on ideas, ask questions and share the media folder." },
-  { icon: ShieldCheck, title: "Safe by default", body: "School email only, hashed passwords and monitored sign-in activity." },
-];
+/* ---------- animated preview screens (member-facing features only) ---------- */
+
+const SCREENS = [
+  {
+    key: "notes",
+    label: "Meeting notes",
+    icon: NotebookPen,
+    body: (
+      <div className="grid h-full grid-cols-3 gap-2">
+        {["❄️", "🚀", "🎯", "📌", "💡", "🗂️"].map((emoji, i) => (
+          <div
+            key={emoji}
+            className="fade-slide flex flex-col overflow-hidden rounded-lg border border-border bg-card"
+            style={{ animationDelay: `${i * 70}ms` }}
+          >
+            <div className="flex flex-1 items-center justify-center bg-primary-soft text-lg">{emoji}</div>
+            <div className="space-y-1 p-1.5">
+              <div className="h-1.5 w-4/5 rounded-full bg-foreground/15" />
+              <div className="h-1 w-2/5 rounded-full bg-foreground/10" />
+            </div>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    key: "events",
+    label: "Events & polls",
+    icon: CalendarDays,
+    body: (
+      <div className="flex h-full flex-col gap-2">
+        {["Winter Showcase", "Community Drive"].map((title, i) => (
+          <div
+            key={title}
+            className="fade-slide flex items-center gap-2 rounded-lg border border-border bg-card p-2"
+            style={{ animationDelay: `${i * 90}ms` }}
+          >
+            <span className="flex size-8 items-center justify-center rounded-md bg-primary-soft text-sm">
+              {i === 0 ? "🎭" : "📚"}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[9px] font-semibold">{title}</span>
+              <span className="block text-[8px] text-muted-foreground">Main Hall · 17:00</span>
+            </span>
+          </div>
+        ))}
+        <div className="fade-slide space-y-1.5 rounded-lg border border-border bg-card p-2" style={{ animationDelay: "180ms" }}>
+          <div className="text-[8px] font-semibold text-muted-foreground">Theme vote</div>
+          {[72, 41, 18].map((w, i) => (
+            <div key={w} className="h-1.5 overflow-hidden rounded-full bg-secondary">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
+                style={{ width: `${w}%`, transitionDelay: `${i * 120}ms` }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    ),
+  },
+  {
+    key: "tasks",
+    label: "Your tasks",
+    icon: CheckCircle2,
+    body: (
+      <div className="flex h-full flex-col gap-1.5">
+        {[
+          { t: "Submit your showcase idea", done: true },
+          { t: "Read the handbook (p. 4–9)", done: true },
+          { t: "Confirm drive attendance", done: false },
+          { t: "Collect poster quote", done: false },
+        ].map((row, i) => (
+          <div
+            key={row.t}
+            className="fade-slide flex items-center gap-2 rounded-lg border border-border bg-card px-2 py-1.5"
+            style={{ animationDelay: `${i * 80}ms` }}
+          >
+            {row.done ? (
+              <CheckCircle2 className="size-3 shrink-0 text-primary" />
+            ) : (
+              <Circle className="size-3 shrink-0 text-muted-foreground" />
+            )}
+            <span className={`truncate text-[9px] ${row.done ? "text-muted-foreground line-through" : ""}`}>{row.t}</span>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    key: "funds",
+    label: "Club funds",
+    icon: Wallet,
+    body: (
+      <div className="flex h-full flex-col justify-center gap-3 rounded-lg border border-border bg-card p-4">
+        <span className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground">Club funds</span>
+        <span className="fade-slide text-3xl font-semibold tracking-tight text-primary">12,450</span>
+        <div className="space-y-1.5">
+          {[64, 38].map((w, i) => (
+            <div key={w} className="h-1.5 overflow-hidden rounded-full bg-secondary">
+              <div
+                className="h-full rounded-full bg-primary/70 transition-[width] duration-700 ease-out"
+                style={{ width: `${w}%`, transitionDelay: `${i * 140}ms` }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    ),
+  },
+] as const;
 
 function Landing() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setIndex((i) => (i + 1) % SCREENS.length), 3600);
+    return () => clearInterval(t);
+  }, []);
+
+  const screen = SCREENS[index]!;
+
   return (
-    <main className="min-h-screen overflow-hidden bg-background">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <span className="flex items-center gap-2 font-semibold tracking-tight">
-          <span className="gradient-primary flex size-8 items-center justify-center rounded-xl text-sm text-primary-foreground">
-            SH
-          </span>
-          The Students Hub
-        </span>
+    <main className="relative flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-background px-6">
+      <div className="pointer-events-none absolute -top-32 left-1/2 -z-10 h-[28rem] w-[46rem] -translate-x-1/2 rounded-[50%] bg-primary/12 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-[-14rem] left-1/2 -z-10 h-[22rem] w-[36rem] -translate-x-1/2 rounded-[50%] bg-primary-glow/12 blur-3xl" />
+
+      <div className="flex w-full max-w-3xl flex-col items-center text-center">
+        <h1 className="rise-in sr-only">The Students Hub</h1>
+        <img
+          src={logo.url}
+          alt="The Students Hub"
+          width={1512}
+          height={521}
+          draggable={false}
+          className="rise-in w-[min(88vw,32rem)] select-none transition-transform duration-500 hover:scale-[1.02]"
+        />
+
         <Link
           to="/log-in"
-          className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+          className="gradient-primary shadow-lift press rise-in group mt-6 inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold text-primary-foreground transition-transform duration-300 hover:-translate-y-0.5"
         >
-          Sign in
+          Get Started
+          <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
         </Link>
-      </header>
-
-      <section className="mx-auto max-w-3xl px-6 pt-10 text-center sm:pt-16">
-        <span className="rise-in inline-flex items-center gap-2 rounded-full border border-border bg-primary-soft px-3 py-1 text-xs font-medium text-accent-foreground">
-          For members of the students club
-        </span>
-        <h1 className="rise-in mt-6 text-4xl font-semibold tracking-tight sm:text-6xl">
-          The Students Hub
-        </h1>
-        <p className="rise-in mt-4 text-lg text-muted-foreground">The hub used for the students club</p>
-        <div className="rise-in mt-8 flex justify-center">
-          <Link
-            to="/log-in"
-            className="gradient-primary shadow-lift group inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold text-primary-foreground transition-transform duration-300 hover:-translate-y-0.5"
-          >
-            Get Started
-            <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </Link>
-        </div>
-      </section>
-
-      <div className="relative mx-auto mt-14 max-w-5xl px-6" aria-hidden={false}>
-        <div className="absolute inset-x-16 top-16 -z-10 h-64 rounded-[50%] bg-primary/15 blur-3xl" />
-        <img
-          src={laptop}
-          width={1600}
-          height={1008}
-          alt="The Students Hub dashboard shown on a laptop"
-          className="rise-in w-full select-none"
-          draggable={false}
-        />
       </div>
 
-      <section className="mx-auto grid max-w-5xl gap-4 px-6 pb-24 sm:grid-cols-3">
-        {highlights.map((h) => (
-          <article
-            key={h.title}
-            className="surface-card p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lift"
-          >
-            <h.icon className="size-5 text-primary" />
-            <h2 className="mt-3 text-sm font-semibold">{h.title}</h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{h.body}</p>
-          </article>
-        ))}
-      </section>
+      {/* laptop mockup with a cycling preview of member features */}
+      <div className="rise-in float-soft mt-8 w-full max-w-2xl">
+        <div className="surface-card overflow-hidden rounded-2xl p-2 shadow-lift">
+          <div className="flex items-center gap-1.5 px-2 pb-2">
+            <span className="size-2 rounded-full bg-destructive/40" />
+            <span className="size-2 rounded-full bg-primary/30" />
+            <span className="size-2 rounded-full bg-muted-foreground/25" />
+            <span className="ml-auto flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground transition-colors">
+              <screen.icon className="size-3 text-primary" />
+              {screen.label}
+            </span>
+          </div>
+          <div className="h-[clamp(9rem,26vh,15rem)] overflow-hidden rounded-xl bg-secondary/50 p-3">
+            <div key={screen.key} className="fade-slide h-full">
+              {screen.body}
+            </div>
+          </div>
+        </div>
+        <div className="mx-auto h-2 w-2/3 rounded-b-2xl bg-foreground/10" />
+        <div className="mt-3 flex justify-center gap-1.5">
+          {SCREENS.map((s, i) => (
+            <button
+              key={s.key}
+              onClick={() => setIndex(i)}
+              aria-label={`Show ${s.label}`}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === index ? "w-6 bg-primary" : "w-1.5 bg-border hover:bg-primary/40"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
     </main>
   );
 }
