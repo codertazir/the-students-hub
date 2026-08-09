@@ -13,10 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashRouteImport } from './routes/_dash'
 import { Route as LogInRouteImport } from './routes/log-in'
 import { Route as DashAccountRouteImport } from './routes/_dash.account'
-import { Route as DashAdminRouteImport } from './routes/_dash.admin'
 import { Route as DashEventsRouteImport } from './routes/_dash.events'
 import { Route as DashHomeRouteImport } from './routes/_dash.home'
 import { Route as DashNotesRouteImport } from './routes/_dash.notes'
+import { Route as NotesIdRouteImport } from './routes/notes.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -37,11 +37,6 @@ const DashAccountRoute = DashAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => DashRoute,
 } as any)
-const DashAdminRoute = DashAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => DashRoute,
-} as any)
 const DashEventsRoute = DashEventsRouteImport.update({
   id: '/events',
   path: '/events',
@@ -57,24 +52,29 @@ const DashNotesRoute = DashNotesRouteImport.update({
   path: '/notes',
   getParentRoute: () => DashRoute,
 } as any)
+const NotesIdRoute = NotesIdRouteImport.update({
+  id: '/notes/$id',
+  path: '/notes/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/log-in': typeof LogInRoute
   '/account': typeof DashAccountRoute
-  '/admin': typeof DashAdminRoute
   '/events': typeof DashEventsRoute
   '/home': typeof DashHomeRoute
   '/notes': typeof DashNotesRoute
+  '/notes/$id': typeof NotesIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/log-in': typeof LogInRoute
   '/account': typeof DashAccountRoute
-  '/admin': typeof DashAdminRoute
   '/events': typeof DashEventsRoute
   '/home': typeof DashHomeRoute
   '/notes': typeof DashNotesRoute
+  '/notes/$id': typeof NotesIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -82,33 +82,35 @@ export interface FileRoutesById {
   '/_dash': typeof DashRouteWithChildren
   '/log-in': typeof LogInRoute
   '/_dash/account': typeof DashAccountRoute
-  '/_dash/admin': typeof DashAdminRoute
   '/_dash/events': typeof DashEventsRoute
   '/_dash/home': typeof DashHomeRoute
   '/_dash/notes': typeof DashNotesRoute
+  '/notes/$id': typeof NotesIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/log-in' | '/account' | '/admin' | '/events' | '/home' | '/notes'
+    '/' | '/log-in' | '/account' | '/events' | '/home' | '/notes' | '/notes/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/log-in' | '/account' | '/admin' | '/events' | '/home' | '/notes'
+  to:
+    '/' | '/log-in' | '/account' | '/events' | '/home' | '/notes' | '/notes/$id'
   id:
     | '__root__'
     | '/'
     | '/_dash'
     | '/log-in'
     | '/_dash/account'
-    | '/_dash/admin'
     | '/_dash/events'
     | '/_dash/home'
     | '/_dash/notes'
+    | '/notes/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashRoute: typeof DashRouteWithChildren
   LogInRoute: typeof LogInRoute
+  NotesIdRoute: typeof NotesIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -141,13 +143,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashAccountRouteImport
       parentRoute: typeof DashRoute
     }
-    '/_dash/admin': {
-      id: '/_dash/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof DashAdminRouteImport
-      parentRoute: typeof DashRoute
-    }
     '/_dash/events': {
       id: '/_dash/events'
       path: '/events'
@@ -169,12 +164,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashNotesRouteImport
       parentRoute: typeof DashRoute
     }
+    '/notes/$id': {
+      id: '/notes/$id'
+      path: '/notes/$id'
+      fullPath: '/notes/$id'
+      preLoaderRoute: typeof NotesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface DashRouteChildren {
   DashAccountRoute: typeof DashAccountRoute
-  DashAdminRoute: typeof DashAdminRoute
   DashEventsRoute: typeof DashEventsRoute
   DashHomeRoute: typeof DashHomeRoute
   DashNotesRoute: typeof DashNotesRoute
@@ -182,7 +183,6 @@ interface DashRouteChildren {
 
 const DashRouteChildren: DashRouteChildren = {
   DashAccountRoute: DashAccountRoute,
-  DashAdminRoute: DashAdminRoute,
   DashEventsRoute: DashEventsRoute,
   DashHomeRoute: DashHomeRoute,
   DashNotesRoute: DashNotesRoute,
@@ -194,6 +194,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashRoute: DashRouteWithChildren,
   LogInRoute: LogInRoute,
+  NotesIdRoute: NotesIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
