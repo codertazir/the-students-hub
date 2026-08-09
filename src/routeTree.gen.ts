@@ -22,6 +22,8 @@ import { Route as NotesIdRouteImport } from './routes/notes.$id'
 import { Route as DashAdminAnnouncementsRouteImport } from './routes/_dash.admin.announcements'
 import { Route as DashAdminFundsRouteImport } from './routes/_dash.admin.funds'
 import { Route as DashAdminMeetingRouteImport } from './routes/_dash.admin.meeting'
+import { Route as DashAdminMembersRouteImport } from './routes/_dash.admin.members'
+import { Route as DashAdminMonitoringRouteImport } from './routes/_dash.admin.monitoring'
 import { Route as DashAdminSuggestionsRouteImport } from './routes/_dash.admin.suggestions'
 
 const IndexRoute = IndexRouteImport.update({
@@ -88,6 +90,16 @@ const DashAdminMeetingRoute = DashAdminMeetingRouteImport.update({
   path: '/admin/meeting',
   getParentRoute: () => DashRoute,
 } as any)
+const DashAdminMembersRoute = DashAdminMembersRouteImport.update({
+  id: '/admin/members',
+  path: '/admin/members',
+  getParentRoute: () => DashRoute,
+} as any)
+const DashAdminMonitoringRoute = DashAdminMonitoringRouteImport.update({
+  id: '/admin/monitoring',
+  path: '/admin/monitoring',
+  getParentRoute: () => DashRoute,
+} as any)
 const DashAdminSuggestionsRoute = DashAdminSuggestionsRouteImport.update({
   id: '/admin/suggestions',
   path: '/admin/suggestions',
@@ -107,6 +119,8 @@ export interface FileRoutesByFullPath {
   '/admin/announcements': typeof DashAdminAnnouncementsRoute
   '/admin/funds': typeof DashAdminFundsRoute
   '/admin/meeting': typeof DashAdminMeetingRoute
+  '/admin/members': typeof DashAdminMembersRoute
+  '/admin/monitoring': typeof DashAdminMonitoringRoute
   '/admin/suggestions': typeof DashAdminSuggestionsRoute
 }
 export interface FileRoutesByTo {
@@ -122,6 +136,8 @@ export interface FileRoutesByTo {
   '/admin/announcements': typeof DashAdminAnnouncementsRoute
   '/admin/funds': typeof DashAdminFundsRoute
   '/admin/meeting': typeof DashAdminMeetingRoute
+  '/admin/members': typeof DashAdminMembersRoute
+  '/admin/monitoring': typeof DashAdminMonitoringRoute
   '/admin/suggestions': typeof DashAdminSuggestionsRoute
 }
 export interface FileRoutesById {
@@ -139,6 +155,8 @@ export interface FileRoutesById {
   '/_dash/admin/announcements': typeof DashAdminAnnouncementsRoute
   '/_dash/admin/funds': typeof DashAdminFundsRoute
   '/_dash/admin/meeting': typeof DashAdminMeetingRoute
+  '/_dash/admin/members': typeof DashAdminMembersRoute
+  '/_dash/admin/monitoring': typeof DashAdminMonitoringRoute
   '/_dash/admin/suggestions': typeof DashAdminSuggestionsRoute
 }
 export interface FileRouteTypes {
@@ -156,6 +174,8 @@ export interface FileRouteTypes {
     | '/admin/announcements'
     | '/admin/funds'
     | '/admin/meeting'
+    | '/admin/members'
+    | '/admin/monitoring'
     | '/admin/suggestions'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -171,6 +191,8 @@ export interface FileRouteTypes {
     | '/admin/announcements'
     | '/admin/funds'
     | '/admin/meeting'
+    | '/admin/members'
+    | '/admin/monitoring'
     | '/admin/suggestions'
   id:
     | '__root__'
@@ -187,6 +209,8 @@ export interface FileRouteTypes {
     | '/_dash/admin/announcements'
     | '/_dash/admin/funds'
     | '/_dash/admin/meeting'
+    | '/_dash/admin/members'
+    | '/_dash/admin/monitoring'
     | '/_dash/admin/suggestions'
   fileRoutesById: FileRoutesById
 }
@@ -291,6 +315,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashAdminMeetingRouteImport
       parentRoute: typeof DashRoute
     }
+    '/_dash/admin/members': {
+      id: '/_dash/admin/members'
+      path: '/admin/members'
+      fullPath: '/admin/members'
+      preLoaderRoute: typeof DashAdminMembersRouteImport
+      parentRoute: typeof DashRoute
+    }
+    '/_dash/admin/monitoring': {
+      id: '/_dash/admin/monitoring'
+      path: '/admin/monitoring'
+      fullPath: '/admin/monitoring'
+      preLoaderRoute: typeof DashAdminMonitoringRouteImport
+      parentRoute: typeof DashRoute
+    }
     '/_dash/admin/suggestions': {
       id: '/_dash/admin/suggestions'
       path: '/admin/suggestions'
@@ -310,6 +348,8 @@ interface DashRouteChildren {
   DashAdminAnnouncementsRoute: typeof DashAdminAnnouncementsRoute
   DashAdminFundsRoute: typeof DashAdminFundsRoute
   DashAdminMeetingRoute: typeof DashAdminMeetingRoute
+  DashAdminMembersRoute: typeof DashAdminMembersRoute
+  DashAdminMonitoringRoute: typeof DashAdminMonitoringRoute
   DashAdminSuggestionsRoute: typeof DashAdminSuggestionsRoute
 }
 
@@ -322,6 +362,8 @@ const DashRouteChildren: DashRouteChildren = {
   DashAdminAnnouncementsRoute: DashAdminAnnouncementsRoute,
   DashAdminFundsRoute: DashAdminFundsRoute,
   DashAdminMeetingRoute: DashAdminMeetingRoute,
+  DashAdminMembersRoute: DashAdminMembersRoute,
+  DashAdminMonitoringRoute: DashAdminMonitoringRoute,
   DashAdminSuggestionsRoute: DashAdminSuggestionsRoute,
 }
 

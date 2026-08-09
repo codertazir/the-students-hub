@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { ONLINE_WINDOW_MS, useAuth, useDB } from "@/lib/auth";
-import { setDB } from "@/lib/store";
+import { setDB, visibleNotifications } from "@/lib/store";
 import { OnboardingDialog } from "@/components/OnboardingDialog";
 
 const NAV = [
@@ -80,7 +80,8 @@ export function DashboardShell() {
   if (!user) return null;
   if (!user.onboarded) return <OnboardingDialog />;
 
-  const unread = db.notifications.filter((n) => !n.read).length;
+  const inbox = visibleNotifications(db, user.id);
+  const unread = inbox.filter((n) => !n.read).length;
   const online = Object.entries(db.presence).filter(([, ts]) => Date.now() - ts < ONLINE_WINDOW_MS);
   const initials = (user.fullName || user.email).slice(0, 2).toUpperCase();
 
@@ -242,10 +243,10 @@ export function DashboardShell() {
                     Mark all read
                   </button>
                 </div>
-                {db.notifications.length === 0 && (
+                {inbox.length === 0 && (
                   <p className="px-2 py-4 text-sm text-muted-foreground">Nothing yet.</p>
                 )}
-                {db.notifications.map((n) => (
+                {inbox.map((n) => (
                   <div key={n.id} className="rounded-lg p-2 transition-colors hover:bg-secondary">
                     <p className="text-sm font-medium">{n.title}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">{n.body}</p>
