@@ -16,9 +16,11 @@ import { Route as DashAccountRouteImport } from './routes/_dash.account'
 import { Route as DashEventsRouteImport } from './routes/_dash.events'
 import { Route as DashHomeRouteImport } from './routes/_dash.home'
 import { Route as DashNotesRouteImport } from './routes/_dash.notes'
+import { Route as DashTasksRouteImport } from './routes/_dash.tasks'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
 import { Route as NotesIdRouteImport } from './routes/notes.$id'
 import { Route as DashAdminAnnouncementsRouteImport } from './routes/_dash.admin.announcements'
+import { Route as DashAdminFundsRouteImport } from './routes/_dash.admin.funds'
 import { Route as DashAdminMeetingRouteImport } from './routes/_dash.admin.meeting'
 import { Route as DashAdminSuggestionsRouteImport } from './routes/_dash.admin.suggestions'
 
@@ -56,6 +58,11 @@ const DashNotesRoute = DashNotesRouteImport.update({
   path: '/notes',
   getParentRoute: () => DashRoute,
 } as any)
+const DashTasksRoute = DashTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => DashRoute,
+} as any)
 const EventsIdRoute = EventsIdRouteImport.update({
   id: '/events/$id',
   path: '/events/$id',
@@ -69,6 +76,11 @@ const NotesIdRoute = NotesIdRouteImport.update({
 const DashAdminAnnouncementsRoute = DashAdminAnnouncementsRouteImport.update({
   id: '/admin/announcements',
   path: '/admin/announcements',
+  getParentRoute: () => DashRoute,
+} as any)
+const DashAdminFundsRoute = DashAdminFundsRouteImport.update({
+  id: '/admin/funds',
+  path: '/admin/funds',
   getParentRoute: () => DashRoute,
 } as any)
 const DashAdminMeetingRoute = DashAdminMeetingRouteImport.update({
@@ -89,9 +101,11 @@ export interface FileRoutesByFullPath {
   '/events': typeof DashEventsRoute
   '/home': typeof DashHomeRoute
   '/notes': typeof DashNotesRoute
+  '/tasks': typeof DashTasksRoute
   '/events/$id': typeof EventsIdRoute
   '/notes/$id': typeof NotesIdRoute
   '/admin/announcements': typeof DashAdminAnnouncementsRoute
+  '/admin/funds': typeof DashAdminFundsRoute
   '/admin/meeting': typeof DashAdminMeetingRoute
   '/admin/suggestions': typeof DashAdminSuggestionsRoute
 }
@@ -102,9 +116,11 @@ export interface FileRoutesByTo {
   '/events': typeof DashEventsRoute
   '/home': typeof DashHomeRoute
   '/notes': typeof DashNotesRoute
+  '/tasks': typeof DashTasksRoute
   '/events/$id': typeof EventsIdRoute
   '/notes/$id': typeof NotesIdRoute
   '/admin/announcements': typeof DashAdminAnnouncementsRoute
+  '/admin/funds': typeof DashAdminFundsRoute
   '/admin/meeting': typeof DashAdminMeetingRoute
   '/admin/suggestions': typeof DashAdminSuggestionsRoute
 }
@@ -117,9 +133,11 @@ export interface FileRoutesById {
   '/_dash/events': typeof DashEventsRoute
   '/_dash/home': typeof DashHomeRoute
   '/_dash/notes': typeof DashNotesRoute
+  '/_dash/tasks': typeof DashTasksRoute
   '/events/$id': typeof EventsIdRoute
   '/notes/$id': typeof NotesIdRoute
   '/_dash/admin/announcements': typeof DashAdminAnnouncementsRoute
+  '/_dash/admin/funds': typeof DashAdminFundsRoute
   '/_dash/admin/meeting': typeof DashAdminMeetingRoute
   '/_dash/admin/suggestions': typeof DashAdminSuggestionsRoute
 }
@@ -132,9 +150,11 @@ export interface FileRouteTypes {
     | '/events'
     | '/home'
     | '/notes'
+    | '/tasks'
     | '/events/$id'
     | '/notes/$id'
     | '/admin/announcements'
+    | '/admin/funds'
     | '/admin/meeting'
     | '/admin/suggestions'
   fileRoutesByTo: FileRoutesByTo
@@ -145,9 +165,11 @@ export interface FileRouteTypes {
     | '/events'
     | '/home'
     | '/notes'
+    | '/tasks'
     | '/events/$id'
     | '/notes/$id'
     | '/admin/announcements'
+    | '/admin/funds'
     | '/admin/meeting'
     | '/admin/suggestions'
   id:
@@ -159,9 +181,11 @@ export interface FileRouteTypes {
     | '/_dash/events'
     | '/_dash/home'
     | '/_dash/notes'
+    | '/_dash/tasks'
     | '/events/$id'
     | '/notes/$id'
     | '/_dash/admin/announcements'
+    | '/_dash/admin/funds'
     | '/_dash/admin/meeting'
     | '/_dash/admin/suggestions'
   fileRoutesById: FileRoutesById
@@ -225,6 +249,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashNotesRouteImport
       parentRoute: typeof DashRoute
     }
+    '/_dash/tasks': {
+      id: '/_dash/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof DashTasksRouteImport
+      parentRoute: typeof DashRoute
+    }
     '/events/$id': {
       id: '/events/$id'
       path: '/events/$id'
@@ -244,6 +275,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/announcements'
       fullPath: '/admin/announcements'
       preLoaderRoute: typeof DashAdminAnnouncementsRouteImport
+      parentRoute: typeof DashRoute
+    }
+    '/_dash/admin/funds': {
+      id: '/_dash/admin/funds'
+      path: '/admin/funds'
+      fullPath: '/admin/funds'
+      preLoaderRoute: typeof DashAdminFundsRouteImport
       parentRoute: typeof DashRoute
     }
     '/_dash/admin/meeting': {
@@ -268,7 +306,9 @@ interface DashRouteChildren {
   DashEventsRoute: typeof DashEventsRoute
   DashHomeRoute: typeof DashHomeRoute
   DashNotesRoute: typeof DashNotesRoute
+  DashTasksRoute: typeof DashTasksRoute
   DashAdminAnnouncementsRoute: typeof DashAdminAnnouncementsRoute
+  DashAdminFundsRoute: typeof DashAdminFundsRoute
   DashAdminMeetingRoute: typeof DashAdminMeetingRoute
   DashAdminSuggestionsRoute: typeof DashAdminSuggestionsRoute
 }
@@ -278,7 +318,9 @@ const DashRouteChildren: DashRouteChildren = {
   DashEventsRoute: DashEventsRoute,
   DashHomeRoute: DashHomeRoute,
   DashNotesRoute: DashNotesRoute,
+  DashTasksRoute: DashTasksRoute,
   DashAdminAnnouncementsRoute: DashAdminAnnouncementsRoute,
+  DashAdminFundsRoute: DashAdminFundsRoute,
   DashAdminMeetingRoute: DashAdminMeetingRoute,
   DashAdminSuggestionsRoute: DashAdminSuggestionsRoute,
 }

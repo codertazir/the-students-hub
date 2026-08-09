@@ -39,7 +39,9 @@ function MeetingPage() {
       const arr = d.meeting.agenda;
       const j = idx + dir;
       if (j < 0 || j >= arr.length) return;
-      [arr[idx], arr[j]] = [arr[j], arr[idx]];
+      const tmp = arr[idx]!;
+      arr[idx] = arr[j]!;
+      arr[j] = tmp;
     });
   };
 
