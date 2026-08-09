@@ -16,8 +16,9 @@ export function TasksPanel({ limit = 3, showComposer = true }: { limit?: number;
   const [assignee, setAssignee] = useState("me");
 
   if (!user) return null;
+  const me = user;
 
-  const mine = visibleTasks(db, user.id);
+  const mine = visibleTasks(db, me.id);
   const open_ = mine.filter((t) => !t.done);
   const done = mine.filter((t) => t.done);
   const shown = expanded ? open_ : open_.slice(0, limit);
@@ -31,10 +32,10 @@ export function TasksPanel({ limit = 3, showComposer = true }: { limit?: number;
       else delete t.completedAt;
     });
     // Notify whoever assigned the task when someone else completes it.
-    if (!task.done && task.createdBy !== "system" && task.createdBy !== user.id) {
+    if (!task.done && task.createdBy !== "system" && task.createdBy !== me.id) {
       notify({
         title: "Task completed",
-        body: `${user.fullName || user.email} finished “${task.title}”.`,
+        body: `${me.fullName || me.email} finished “${task.title}”.`,
         targets: [task.createdBy],
         cta: { label: "Open tasks", to: "/tasks" },
       });
@@ -49,15 +50,15 @@ export function TasksPanel({ limit = 3, showComposer = true }: { limit?: number;
         title: title.trim(),
         due: due.trim() || "No due date",
         done: false,
-        createdBy: user.id,
-        assignedTo: assignee === "me" ? user.id : assignee === "all" ? "all" : assignee,
+        createdBy: me.id,
+        assignedTo: assignee === "me" ? me.id : assignee === "all" ? "all" : assignee,
         createdAt: Date.now(),
       });
     });
     if (assignee !== "me" && assignee !== "all") {
       notify({
         title: "New task assigned to you",
-        body: `${user.fullName || user.email} assigned “${title.trim()}” to you.`,
+        body: `${me.fullName || me.email} assigned “${title.trim()}” to you.`,
         targets: [assignee],
         cta: { label: "Open tasks", to: "/tasks" },
       });
@@ -81,8 +82,8 @@ export function TasksPanel({ limit = 3, showComposer = true }: { limit?: number;
                 {t.title}
                 <span className="block text-xs text-muted-foreground">
                   Due {t.due}
-                  {t.assignedTo !== "all" && t.assignedTo !== user.id && ` · ${userLabel(db, t.assignedTo)}`}
-                  {t.createdBy !== "system" && t.createdBy !== user.id && ` · from ${userLabel(db, t.createdBy)}`}
+                  {t.assignedTo !== "all" && t.assignedTo !== me.id && ` · ${userLabel(db, t.assignedTo)}`}
+                  {t.createdBy !== "system" && t.createdBy !== me.id && ` · from ${userLabel(db, t.createdBy)}`}
                 </span>
               </span>
             </button>
@@ -125,7 +126,7 @@ export function TasksPanel({ limit = 3, showComposer = true }: { limit?: number;
                   <option value="me">Myself</option>
                   <option value="all">Everyone</option>
                   {db.users
-                    .filter((u) => u.id !== user.id)
+                    .filter((u) => u.id !== me.id)
                     .map((u) => (
                       <option key={u.id} value={u.id}>
                         {u.fullName || u.email}
