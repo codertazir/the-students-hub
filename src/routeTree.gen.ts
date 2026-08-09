@@ -16,8 +16,10 @@ import { Route as DashAccountRouteImport } from './routes/_dash.account'
 import { Route as DashEventsRouteImport } from './routes/_dash.events'
 import { Route as DashHomeRouteImport } from './routes/_dash.home'
 import { Route as DashNotesRouteImport } from './routes/_dash.notes'
+import { Route as EventsIdRouteImport } from './routes/events.$id'
 import { Route as NotesIdRouteImport } from './routes/notes.$id'
 import { Route as DashAdminAnnouncementsRouteImport } from './routes/_dash.admin.announcements'
+import { Route as DashAdminMeetingRouteImport } from './routes/_dash.admin.meeting'
 import { Route as DashAdminSuggestionsRouteImport } from './routes/_dash.admin.suggestions'
 
 const IndexRoute = IndexRouteImport.update({
@@ -54,6 +56,11 @@ const DashNotesRoute = DashNotesRouteImport.update({
   path: '/notes',
   getParentRoute: () => DashRoute,
 } as any)
+const EventsIdRoute = EventsIdRouteImport.update({
+  id: '/events/$id',
+  path: '/events/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NotesIdRoute = NotesIdRouteImport.update({
   id: '/notes/$id',
   path: '/notes/$id',
@@ -62,6 +69,11 @@ const NotesIdRoute = NotesIdRouteImport.update({
 const DashAdminAnnouncementsRoute = DashAdminAnnouncementsRouteImport.update({
   id: '/admin/announcements',
   path: '/admin/announcements',
+  getParentRoute: () => DashRoute,
+} as any)
+const DashAdminMeetingRoute = DashAdminMeetingRouteImport.update({
+  id: '/admin/meeting',
+  path: '/admin/meeting',
   getParentRoute: () => DashRoute,
 } as any)
 const DashAdminSuggestionsRoute = DashAdminSuggestionsRouteImport.update({
@@ -77,8 +89,10 @@ export interface FileRoutesByFullPath {
   '/events': typeof DashEventsRoute
   '/home': typeof DashHomeRoute
   '/notes': typeof DashNotesRoute
+  '/events/$id': typeof EventsIdRoute
   '/notes/$id': typeof NotesIdRoute
   '/admin/announcements': typeof DashAdminAnnouncementsRoute
+  '/admin/meeting': typeof DashAdminMeetingRoute
   '/admin/suggestions': typeof DashAdminSuggestionsRoute
 }
 export interface FileRoutesByTo {
@@ -88,8 +102,10 @@ export interface FileRoutesByTo {
   '/events': typeof DashEventsRoute
   '/home': typeof DashHomeRoute
   '/notes': typeof DashNotesRoute
+  '/events/$id': typeof EventsIdRoute
   '/notes/$id': typeof NotesIdRoute
   '/admin/announcements': typeof DashAdminAnnouncementsRoute
+  '/admin/meeting': typeof DashAdminMeetingRoute
   '/admin/suggestions': typeof DashAdminSuggestionsRoute
 }
 export interface FileRoutesById {
@@ -101,8 +117,10 @@ export interface FileRoutesById {
   '/_dash/events': typeof DashEventsRoute
   '/_dash/home': typeof DashHomeRoute
   '/_dash/notes': typeof DashNotesRoute
+  '/events/$id': typeof EventsIdRoute
   '/notes/$id': typeof NotesIdRoute
   '/_dash/admin/announcements': typeof DashAdminAnnouncementsRoute
+  '/_dash/admin/meeting': typeof DashAdminMeetingRoute
   '/_dash/admin/suggestions': typeof DashAdminSuggestionsRoute
 }
 export interface FileRouteTypes {
@@ -114,8 +132,10 @@ export interface FileRouteTypes {
     | '/events'
     | '/home'
     | '/notes'
+    | '/events/$id'
     | '/notes/$id'
     | '/admin/announcements'
+    | '/admin/meeting'
     | '/admin/suggestions'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -125,8 +145,10 @@ export interface FileRouteTypes {
     | '/events'
     | '/home'
     | '/notes'
+    | '/events/$id'
     | '/notes/$id'
     | '/admin/announcements'
+    | '/admin/meeting'
     | '/admin/suggestions'
   id:
     | '__root__'
@@ -137,8 +159,10 @@ export interface FileRouteTypes {
     | '/_dash/events'
     | '/_dash/home'
     | '/_dash/notes'
+    | '/events/$id'
     | '/notes/$id'
     | '/_dash/admin/announcements'
+    | '/_dash/admin/meeting'
     | '/_dash/admin/suggestions'
   fileRoutesById: FileRoutesById
 }
@@ -146,6 +170,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashRoute: typeof DashRouteWithChildren
   LogInRoute: typeof LogInRoute
+  EventsIdRoute: typeof EventsIdRoute
   NotesIdRoute: typeof NotesIdRoute
 }
 
@@ -200,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashNotesRouteImport
       parentRoute: typeof DashRoute
     }
+    '/events/$id': {
+      id: '/events/$id'
+      path: '/events/$id'
+      fullPath: '/events/$id'
+      preLoaderRoute: typeof EventsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/notes/$id': {
       id: '/notes/$id'
       path: '/notes/$id'
@@ -212,6 +244,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/announcements'
       fullPath: '/admin/announcements'
       preLoaderRoute: typeof DashAdminAnnouncementsRouteImport
+      parentRoute: typeof DashRoute
+    }
+    '/_dash/admin/meeting': {
+      id: '/_dash/admin/meeting'
+      path: '/admin/meeting'
+      fullPath: '/admin/meeting'
+      preLoaderRoute: typeof DashAdminMeetingRouteImport
       parentRoute: typeof DashRoute
     }
     '/_dash/admin/suggestions': {
@@ -230,6 +269,7 @@ interface DashRouteChildren {
   DashHomeRoute: typeof DashHomeRoute
   DashNotesRoute: typeof DashNotesRoute
   DashAdminAnnouncementsRoute: typeof DashAdminAnnouncementsRoute
+  DashAdminMeetingRoute: typeof DashAdminMeetingRoute
   DashAdminSuggestionsRoute: typeof DashAdminSuggestionsRoute
 }
 
@@ -239,6 +279,7 @@ const DashRouteChildren: DashRouteChildren = {
   DashHomeRoute: DashHomeRoute,
   DashNotesRoute: DashNotesRoute,
   DashAdminAnnouncementsRoute: DashAdminAnnouncementsRoute,
+  DashAdminMeetingRoute: DashAdminMeetingRoute,
   DashAdminSuggestionsRoute: DashAdminSuggestionsRoute,
 }
 
@@ -248,6 +289,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashRoute: DashRouteWithChildren,
   LogInRoute: LogInRoute,
+  EventsIdRoute: EventsIdRoute,
   NotesIdRoute: NotesIdRoute,
 }
 export const routeTree = rootRouteImport

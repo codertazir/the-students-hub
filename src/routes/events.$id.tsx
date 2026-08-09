@@ -33,6 +33,7 @@ export const Route = createFileRoute("/events/$id")({
 });
 
 const TYPING_TTL = 4000;
+const FIELD = "rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-ring";
 
 function EventDetailPage() {
   const { id } = Route.useParams();
@@ -122,7 +123,7 @@ function AdminEventMeta({ event }: { event: ReturnType<typeof useDB>["events"][n
         <div className="absolute right-0 top-10 z-30 w-72 space-y-2 rounded-xl border border-border bg-card p-3 shadow-lift">
           <Labeled label="Title">
             <input
-              className="input-field"
+              className={FIELD}
               value={event.title}
               onChange={(e) => setDB((d) => void (d.events.find((x) => x.id === event.id)!.title = e.target.value))}
             />
@@ -130,7 +131,7 @@ function AdminEventMeta({ event }: { event: ReturnType<typeof useDB>["events"][n
           <Labeled label="Number">
             <input
               type="number"
-              className="input-field"
+              className={FIELD}
               value={event.number}
               onChange={(e) =>
                 setDB((d) => void (d.events.find((x) => x.id === event.id)!.number = Number(e.target.value) || 0))
@@ -139,28 +140,28 @@ function AdminEventMeta({ event }: { event: ReturnType<typeof useDB>["events"][n
           </Labeled>
           <Labeled label="Date & time label">
             <input
-              className="input-field"
+              className={FIELD}
               value={event.dateLabel}
               onChange={(e) => setDB((d) => void (d.events.find((x) => x.id === event.id)!.dateLabel = e.target.value))}
             />
           </Labeled>
           <Labeled label="Date (yyyy-mm-dd)">
             <input
-              className="input-field"
+              className={FIELD}
               value={event.date}
               onChange={(e) => setDB((d) => void (d.events.find((x) => x.id === event.id)!.date = e.target.value))}
             />
           </Labeled>
           <Labeled label="Location">
             <input
-              className="input-field"
+              className={FIELD}
               value={event.location}
               onChange={(e) => setDB((d) => void (d.events.find((x) => x.id === event.id)!.location = e.target.value))}
             />
           </Labeled>
           <Labeled label="Emoji">
             <input
-              className="input-field"
+              className={FIELD}
               value={event.previewEmoji}
               onChange={(e) => setDB((d) => void (d.events.find((x) => x.id === event.id)!.previewEmoji = e.target.value))}
             />
@@ -282,7 +283,7 @@ function AdminBlockEditor({
   if (block.kind === "divider") return null;
   return (
     <textarea
-      className="input-field mt-1.5 w-full resize-none text-xs"
+      className={cn(FIELD, "mt-1.5 w-full resize-none text-xs")}
       rows={2}
       value={block.content}
       placeholder="Edit content…"
@@ -322,7 +323,7 @@ function BlockView({ event, block }: { event: ReturnType<typeof useDB>["events"]
     <div className="space-y-1.5">
       <p className="text-sm font-medium">{block.content}</p>
       <textarea
-        className="input-field w-full resize-none"
+        className={cn(FIELD, "w-full resize-none")}
         rows={3}
         value={local}
         onChange={(e) => {
@@ -453,7 +454,7 @@ function CardBlock({
       <div className="flex items-center justify-between gap-2">
         {isAdmin ? (
           <input
-            className="input-field flex-1 text-sm font-semibold"
+            className={cn(FIELD, "flex-1 text-sm font-semibold")}
             value={card.title}
             onChange={(e) => patchCard((c) => void (c.title = e.target.value))}
           />
@@ -508,7 +509,7 @@ function PollCard({ event, card }: { event: ReturnType<typeof useDB>["events"][n
     <div className="space-y-2">
       {isAdmin ? (
         <input
-          className="input-field w-full text-sm"
+          className={cn(FIELD, "w-full text-sm")}
           value={poll.question}
           onChange={(e) =>
             setDB((d) => {
@@ -585,7 +586,7 @@ function BudgetCard({ event, card }: { event: ReturnType<typeof useDB>["events"]
         {isAdmin ? (
           <input
             type="number"
-            className="input-field w-28 text-sm font-semibold"
+            className={cn(FIELD, "w-28 text-sm font-semibold")}
             value={budget.total}
             onChange={(e) =>
               setDB((d) => {
@@ -611,7 +612,7 @@ function BudgetCard({ event, card }: { event: ReturnType<typeof useDB>["events"]
               <div className="flex items-center justify-between text-xs">
                 {isAdmin ? (
                   <input
-                    className="input-field w-32 text-xs"
+                    className={cn(FIELD, "w-32 text-xs")}
                     value={a.label}
                     onChange={(e) =>
                       setDB((d) => {
@@ -628,7 +629,7 @@ function BudgetCard({ event, card }: { event: ReturnType<typeof useDB>["events"]
                   {isAdmin ? (
                     <input
                       type="number"
-                      className="input-field w-20 text-xs"
+                      className={cn(FIELD, "w-20 text-xs")}
                       value={a.amount}
                       onChange={(e) =>
                         setDB((d) => {
@@ -691,7 +692,7 @@ function StatsCard({ event, card }: { event: ReturnType<typeof useDB>["events"][
             {isAdmin ? (
               <>
                 <input
-                  className="input-field mb-1 w-full text-xs"
+                  className={cn(FIELD, "mb-1 w-full text-xs")}
                   value={s.label}
                   onChange={(e) =>
                     setDB((d) => {
@@ -702,7 +703,7 @@ function StatsCard({ event, card }: { event: ReturnType<typeof useDB>["events"][
                   }
                 />
                 <input
-                  className="input-field w-full text-sm font-semibold"
+                  className={cn(FIELD, "w-full text-sm font-semibold")}
                   value={s.value}
                   onChange={(e) =>
                     setDB((d) => {
@@ -745,7 +746,7 @@ function InfoCard({ event, card }: { event: ReturnType<typeof useDB>["events"][n
   const info = card.info!;
   return isAdmin ? (
     <textarea
-      className="input-field w-full resize-none text-sm"
+      className={cn(FIELD, "w-full resize-none text-sm")}
       rows={3}
       value={info.body}
       onChange={(e) =>
@@ -867,7 +868,7 @@ function CommentsBlock({ event }: { event: ReturnType<typeof useDB>["events"][nu
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={kind === "question" ? "Ask a question…" : "Share a comment…"}
-          className="input-field min-w-40 flex-1"
+          className={cn(FIELD, "min-w-40 flex-1")}
         />
         <button
           onClick={() => setKind(kind === "comment" ? "question" : "comment")}
