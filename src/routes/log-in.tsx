@@ -68,7 +68,7 @@ function LoginPage() {
         <div className="surface-card rise-in p-7">
           <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Use your school account. New members get an account automatically.
+            New members get an account automatically.
           </p>
 
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
@@ -80,7 +80,7 @@ function LoginPage() {
                   autoComplete="username"
                   value={local}
                   onChange={(e) => setLocal(e.target.value)}
-                  placeholder="firstname.lastname"
+                  placeholder="School email"
                   className="w-full bg-transparent px-3 py-2 text-sm outline-none"
                 />
                 <span className="shrink-0 border-l border-input bg-secondary px-3 py-2 text-sm text-muted-foreground">
