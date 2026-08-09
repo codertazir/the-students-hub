@@ -109,33 +109,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setDB((d) => {
         // First run against an empty database: keep the local drafts so the
         // mirror effect below pushes them up instead of wiping the UI.
-        if (notes.length > 0 || d.notes.length === 0) {
-          d.notes = notes.map((n) => {
-          const local = d.notes.find((x) => x.id === n.id);
-          return {
-            id: n.id,
-            title: n.title,
-            meetingDate: n.date.slice(0, 10),
-            html: n.content,
-            boxes: local?.boxes ?? [],
-            responses: local?.responses ?? [],
-          };
-        });
+        if (notes.length > 0) {
+          d.notes = notes.map((n, i) => {
+            const local = d.notes.find((x) => x.id === n.id);
+            const payload = parseJSON<Partial<Note>>(n.content);
+            return {
+              id: n.id,
+              number: payload?.number ?? local?.number ?? i + 1,
+              title: n.title,
+              dateLabel: payload?.dateLabel ?? local?.dateLabel ?? n.date.slice(0, 10),
+              meetingDate: n.date.slice(0, 10),
+              previewEmoji: payload?.previewEmoji ?? local?.previewEmoji ?? "📝",
+              previewAccent: payload?.previewAccent ?? local?.previewAccent ?? previewAccent(i),
+              blocks: payload?.blocks ?? local?.blocks ?? [
+                { id: `b-${n.id}`, kind: "text" as const, content: n.content },
+              ],
+              createdAt: local?.createdAt ?? new Date(n.date).getTime(),
+            };
+          });
         }
-        if (events.length > 0 || d.events.length === 0) {
-          d.events = events.map((e) => {
-          const local = d.events.find((x) => x.id === e.id);
-          return {
-            id: e.id,
-            title: e.title,
-            date: e.date.slice(0, 10),
-            location: e.location ?? "",
-            notes: e.description,
-            ...(local?.poll ? { poll: local.poll } : {}),
-            comments: local?.comments ?? [],
-            folders: local?.folders ?? [],
-          };
-        });
+        if (events.length > 0) {
+          d.events = events.map((e, i) => {
+            const local = d.events.find((x) => x.id === e.id);
+            const payload = parseJSON<Partial<ClubEvent>>(e.description);
+            return {
+              id: e.id,
+              number: payload?.number ?? local?.number ?? i + 1,
+              title: e.title,
+              dateLabel: payload?.dateLabel ?? local?.dateLabel ?? e.date.slice(0, 10),
+              date: e.date.slice(0, 10),
+              location: e.location ?? "",
+              previewEmoji: payload?.previewEmoji ?? local?.previewEmoji ?? "🎉",
+              previewAccent: payload?.previewAccent ?? local?.previewAccent ?? previewAccent(i),
+              completed: payload?.completed ?? local?.completed ?? false,
+              blocks: payload?.blocks ?? local?.blocks ?? [
+                { id: `b-${e.id}`, kind: "text" as const, content: e.description },
+              ],
+              cards: payload?.cards ?? local?.cards ?? [],
+              comments: local?.comments ?? [],
+              createdAt: local?.createdAt ?? new Date(e.date).getTime(),
+            };
+          });
         }
       });
     } catch {
