@@ -2,9 +2,12 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import {
   getDB,
   logActivity,
+  previewAccent,
   setDB,
   subscribe,
+  type ClubEvent,
   type DB,
+  type Note,
   type User,
 } from "./store";
 import {
@@ -22,6 +25,16 @@ import {
 } from "./hub.functions";
 
 type SafeUser = Awaited<ReturnType<typeof getSessionUser>>;
+
+/** Structured note/event payloads travel as JSON inside the text columns. */
+function parseJSON<T>(raw: string): T | null {
+  try {
+    const value = JSON.parse(raw) as unknown;
+    return value && typeof value === "object" ? (value as T) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function useDB(): DB {
   const [, force] = useState(0);
@@ -194,7 +207,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           for (const n of db.notes) {
             await upsertNote({
-              data: { id: n.id, title: n.title, content: n.html, date: n.meetingDate || undefined },
+              data: {
+                id: n.id,
+                title: n.title,
+                content: JSON.stringify({
+                  number: n.number,
+                  dateLabel: n.dateLabel,
+                  previewEmoji: n.previewEmoji,
+                  previewAccent: n.previewAccent,
+                  blocks: n.blocks,
+                }),
+                date: n.meetingDate || undefined,
+              },
             });
           }
           for (const e of db.events) {
@@ -202,7 +226,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               data: {
                 id: e.id,
                 title: e.title,
-                description: e.notes,
+                description: JSON.stringify({
+                  number: e.number,
+                  dateLabel: e.dateLabel,
+                  previewEmoji: e.previewEmoji,
+                  previewAccent: e.previewAccent,
+                  completed: e.completed,
+                  blocks: e.blocks,
+                  cards: e.cards,
+                }),
                 date: e.date || undefined,
                 location: e.location || null,
               },
