@@ -13,10 +13,18 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashRouteImport } from './routes/_dash'
 import { Route as LogInRouteImport } from './routes/log-in'
 import { Route as DashAccountRouteImport } from './routes/_dash.account'
-import { Route as DashAdminRouteImport } from './routes/_dash.admin'
 import { Route as DashEventsRouteImport } from './routes/_dash.events'
 import { Route as DashHomeRouteImport } from './routes/_dash.home'
 import { Route as DashNotesRouteImport } from './routes/_dash.notes'
+import { Route as DashTasksRouteImport } from './routes/_dash.tasks'
+import { Route as EventsIdRouteImport } from './routes/events.$id'
+import { Route as NotesIdRouteImport } from './routes/notes.$id'
+import { Route as DashAdminAnnouncementsRouteImport } from './routes/_dash.admin.announcements'
+import { Route as DashAdminFundsRouteImport } from './routes/_dash.admin.funds'
+import { Route as DashAdminMeetingRouteImport } from './routes/_dash.admin.meeting'
+import { Route as DashAdminMembersRouteImport } from './routes/_dash.admin.members'
+import { Route as DashAdminMonitoringRouteImport } from './routes/_dash.admin.monitoring'
+import { Route as DashAdminSuggestionsRouteImport } from './routes/_dash.admin.suggestions'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -37,11 +45,6 @@ const DashAccountRoute = DashAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => DashRoute,
 } as any)
-const DashAdminRoute = DashAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => DashRoute,
-} as any)
 const DashEventsRoute = DashEventsRouteImport.update({
   id: '/events',
   path: '/events',
@@ -57,24 +60,85 @@ const DashNotesRoute = DashNotesRouteImport.update({
   path: '/notes',
   getParentRoute: () => DashRoute,
 } as any)
+const DashTasksRoute = DashTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => DashRoute,
+} as any)
+const EventsIdRoute = EventsIdRouteImport.update({
+  id: '/events/$id',
+  path: '/events/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotesIdRoute = NotesIdRouteImport.update({
+  id: '/notes/$id',
+  path: '/notes/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashAdminAnnouncementsRoute = DashAdminAnnouncementsRouteImport.update({
+  id: '/admin/announcements',
+  path: '/admin/announcements',
+  getParentRoute: () => DashRoute,
+} as any)
+const DashAdminFundsRoute = DashAdminFundsRouteImport.update({
+  id: '/admin/funds',
+  path: '/admin/funds',
+  getParentRoute: () => DashRoute,
+} as any)
+const DashAdminMeetingRoute = DashAdminMeetingRouteImport.update({
+  id: '/admin/meeting',
+  path: '/admin/meeting',
+  getParentRoute: () => DashRoute,
+} as any)
+const DashAdminMembersRoute = DashAdminMembersRouteImport.update({
+  id: '/admin/members',
+  path: '/admin/members',
+  getParentRoute: () => DashRoute,
+} as any)
+const DashAdminMonitoringRoute = DashAdminMonitoringRouteImport.update({
+  id: '/admin/monitoring',
+  path: '/admin/monitoring',
+  getParentRoute: () => DashRoute,
+} as any)
+const DashAdminSuggestionsRoute = DashAdminSuggestionsRouteImport.update({
+  id: '/admin/suggestions',
+  path: '/admin/suggestions',
+  getParentRoute: () => DashRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/log-in': typeof LogInRoute
   '/account': typeof DashAccountRoute
-  '/admin': typeof DashAdminRoute
   '/events': typeof DashEventsRoute
   '/home': typeof DashHomeRoute
   '/notes': typeof DashNotesRoute
+  '/tasks': typeof DashTasksRoute
+  '/events/$id': typeof EventsIdRoute
+  '/notes/$id': typeof NotesIdRoute
+  '/admin/announcements': typeof DashAdminAnnouncementsRoute
+  '/admin/funds': typeof DashAdminFundsRoute
+  '/admin/meeting': typeof DashAdminMeetingRoute
+  '/admin/members': typeof DashAdminMembersRoute
+  '/admin/monitoring': typeof DashAdminMonitoringRoute
+  '/admin/suggestions': typeof DashAdminSuggestionsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/log-in': typeof LogInRoute
   '/account': typeof DashAccountRoute
-  '/admin': typeof DashAdminRoute
   '/events': typeof DashEventsRoute
   '/home': typeof DashHomeRoute
   '/notes': typeof DashNotesRoute
+  '/tasks': typeof DashTasksRoute
+  '/events/$id': typeof EventsIdRoute
+  '/notes/$id': typeof NotesIdRoute
+  '/admin/announcements': typeof DashAdminAnnouncementsRoute
+  '/admin/funds': typeof DashAdminFundsRoute
+  '/admin/meeting': typeof DashAdminMeetingRoute
+  '/admin/members': typeof DashAdminMembersRoute
+  '/admin/monitoring': typeof DashAdminMonitoringRoute
+  '/admin/suggestions': typeof DashAdminSuggestionsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -82,33 +146,80 @@ export interface FileRoutesById {
   '/_dash': typeof DashRouteWithChildren
   '/log-in': typeof LogInRoute
   '/_dash/account': typeof DashAccountRoute
-  '/_dash/admin': typeof DashAdminRoute
   '/_dash/events': typeof DashEventsRoute
   '/_dash/home': typeof DashHomeRoute
   '/_dash/notes': typeof DashNotesRoute
+  '/_dash/tasks': typeof DashTasksRoute
+  '/events/$id': typeof EventsIdRoute
+  '/notes/$id': typeof NotesIdRoute
+  '/_dash/admin/announcements': typeof DashAdminAnnouncementsRoute
+  '/_dash/admin/funds': typeof DashAdminFundsRoute
+  '/_dash/admin/meeting': typeof DashAdminMeetingRoute
+  '/_dash/admin/members': typeof DashAdminMembersRoute
+  '/_dash/admin/monitoring': typeof DashAdminMonitoringRoute
+  '/_dash/admin/suggestions': typeof DashAdminSuggestionsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/log-in' | '/account' | '/admin' | '/events' | '/home' | '/notes'
+    | '/'
+    | '/log-in'
+    | '/account'
+    | '/events'
+    | '/home'
+    | '/notes'
+    | '/tasks'
+    | '/events/$id'
+    | '/notes/$id'
+    | '/admin/announcements'
+    | '/admin/funds'
+    | '/admin/meeting'
+    | '/admin/members'
+    | '/admin/monitoring'
+    | '/admin/suggestions'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/log-in' | '/account' | '/admin' | '/events' | '/home' | '/notes'
+  to:
+    | '/'
+    | '/log-in'
+    | '/account'
+    | '/events'
+    | '/home'
+    | '/notes'
+    | '/tasks'
+    | '/events/$id'
+    | '/notes/$id'
+    | '/admin/announcements'
+    | '/admin/funds'
+    | '/admin/meeting'
+    | '/admin/members'
+    | '/admin/monitoring'
+    | '/admin/suggestions'
   id:
     | '__root__'
     | '/'
     | '/_dash'
     | '/log-in'
     | '/_dash/account'
-    | '/_dash/admin'
     | '/_dash/events'
     | '/_dash/home'
     | '/_dash/notes'
+    | '/_dash/tasks'
+    | '/events/$id'
+    | '/notes/$id'
+    | '/_dash/admin/announcements'
+    | '/_dash/admin/funds'
+    | '/_dash/admin/meeting'
+    | '/_dash/admin/members'
+    | '/_dash/admin/monitoring'
+    | '/_dash/admin/suggestions'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashRoute: typeof DashRouteWithChildren
   LogInRoute: typeof LogInRoute
+  EventsIdRoute: typeof EventsIdRoute
+  NotesIdRoute: typeof NotesIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -141,13 +252,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashAccountRouteImport
       parentRoute: typeof DashRoute
     }
-    '/_dash/admin': {
-      id: '/_dash/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof DashAdminRouteImport
-      parentRoute: typeof DashRoute
-    }
     '/_dash/events': {
       id: '/_dash/events'
       path: '/events'
@@ -169,23 +273,98 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashNotesRouteImport
       parentRoute: typeof DashRoute
     }
+    '/_dash/tasks': {
+      id: '/_dash/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof DashTasksRouteImport
+      parentRoute: typeof DashRoute
+    }
+    '/events/$id': {
+      id: '/events/$id'
+      path: '/events/$id'
+      fullPath: '/events/$id'
+      preLoaderRoute: typeof EventsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notes/$id': {
+      id: '/notes/$id'
+      path: '/notes/$id'
+      fullPath: '/notes/$id'
+      preLoaderRoute: typeof NotesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_dash/admin/announcements': {
+      id: '/_dash/admin/announcements'
+      path: '/admin/announcements'
+      fullPath: '/admin/announcements'
+      preLoaderRoute: typeof DashAdminAnnouncementsRouteImport
+      parentRoute: typeof DashRoute
+    }
+    '/_dash/admin/funds': {
+      id: '/_dash/admin/funds'
+      path: '/admin/funds'
+      fullPath: '/admin/funds'
+      preLoaderRoute: typeof DashAdminFundsRouteImport
+      parentRoute: typeof DashRoute
+    }
+    '/_dash/admin/meeting': {
+      id: '/_dash/admin/meeting'
+      path: '/admin/meeting'
+      fullPath: '/admin/meeting'
+      preLoaderRoute: typeof DashAdminMeetingRouteImport
+      parentRoute: typeof DashRoute
+    }
+    '/_dash/admin/members': {
+      id: '/_dash/admin/members'
+      path: '/admin/members'
+      fullPath: '/admin/members'
+      preLoaderRoute: typeof DashAdminMembersRouteImport
+      parentRoute: typeof DashRoute
+    }
+    '/_dash/admin/monitoring': {
+      id: '/_dash/admin/monitoring'
+      path: '/admin/monitoring'
+      fullPath: '/admin/monitoring'
+      preLoaderRoute: typeof DashAdminMonitoringRouteImport
+      parentRoute: typeof DashRoute
+    }
+    '/_dash/admin/suggestions': {
+      id: '/_dash/admin/suggestions'
+      path: '/admin/suggestions'
+      fullPath: '/admin/suggestions'
+      preLoaderRoute: typeof DashAdminSuggestionsRouteImport
+      parentRoute: typeof DashRoute
+    }
   }
 }
 
 interface DashRouteChildren {
   DashAccountRoute: typeof DashAccountRoute
-  DashAdminRoute: typeof DashAdminRoute
   DashEventsRoute: typeof DashEventsRoute
   DashHomeRoute: typeof DashHomeRoute
   DashNotesRoute: typeof DashNotesRoute
+  DashTasksRoute: typeof DashTasksRoute
+  DashAdminAnnouncementsRoute: typeof DashAdminAnnouncementsRoute
+  DashAdminFundsRoute: typeof DashAdminFundsRoute
+  DashAdminMeetingRoute: typeof DashAdminMeetingRoute
+  DashAdminMembersRoute: typeof DashAdminMembersRoute
+  DashAdminMonitoringRoute: typeof DashAdminMonitoringRoute
+  DashAdminSuggestionsRoute: typeof DashAdminSuggestionsRoute
 }
 
 const DashRouteChildren: DashRouteChildren = {
   DashAccountRoute: DashAccountRoute,
-  DashAdminRoute: DashAdminRoute,
   DashEventsRoute: DashEventsRoute,
   DashHomeRoute: DashHomeRoute,
   DashNotesRoute: DashNotesRoute,
+  DashTasksRoute: DashTasksRoute,
+  DashAdminAnnouncementsRoute: DashAdminAnnouncementsRoute,
+  DashAdminFundsRoute: DashAdminFundsRoute,
+  DashAdminMeetingRoute: DashAdminMeetingRoute,
+  DashAdminMembersRoute: DashAdminMembersRoute,
+  DashAdminMonitoringRoute: DashAdminMonitoringRoute,
+  DashAdminSuggestionsRoute: DashAdminSuggestionsRoute,
 }
 
 const DashRouteWithChildren = DashRoute._addFileChildren(DashRouteChildren)
@@ -194,17 +373,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashRoute: DashRouteWithChildren,
   LogInRoute: LogInRoute,
+  EventsIdRoute: EventsIdRoute,
+  NotesIdRoute: NotesIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

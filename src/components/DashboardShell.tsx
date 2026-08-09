@@ -3,14 +3,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Bell,
   CalendarDays,
+  CheckCircle2,
   Home,
   LogOut,
+  Megaphone,
   NotebookPen,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
+  Users,
+  Wallet,
+  Lightbulb,
   ShieldCheck,
 } from "lucide-react";
+import logo from "@/assets/students-hub-logo.png.asset.json";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,13 +26,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { ONLINE_WINDOW_MS, useAuth, useDB } from "@/lib/auth";
-import { setDB } from "@/lib/store";
+import { setDB, visibleNotifications } from "@/lib/store";
 import { OnboardingDialog } from "@/components/OnboardingDialog";
 
 const NAV = [
   { to: "/home", label: "Home", icon: Home },
   { to: "/notes", label: "Notes", icon: NotebookPen },
   { to: "/events", label: "Events", icon: CalendarDays },
+  { to: "/tasks", label: "Tasks", icon: CheckCircle2 },
+] as const;
+
+const ADMIN_NAV = [
+  { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
+  { to: "/admin/suggestions", label: "Suggestions", icon: Lightbulb },
+  { to: "/admin/meeting", label: "Meeting", icon: CalendarDays },
+  { to: "/admin/funds", label: "Funds & tasks", icon: Wallet },
+  { to: "/admin/members", label: "Members", icon: Users },
+  { to: "/admin/monitoring", label: "Monitoring", icon: ShieldCheck },
 ] as const;
 
 export function DashboardShell() {
@@ -64,7 +80,8 @@ export function DashboardShell() {
   if (!user) return null;
   if (!user.onboarded) return <OnboardingDialog />;
 
-  const unread = db.notifications.filter((n) => !n.read).length;
+  const inbox = visibleNotifications(db, user.id);
+  const unread = inbox.filter((n) => !n.read).length;
   const online = Object.entries(db.presence).filter(([, ts]) => Date.now() - ts < ONLINE_WINDOW_MS);
   const initials = (user.fullName || user.email).slice(0, 2).toUpperCase();
 
@@ -80,16 +97,27 @@ export function DashboardShell() {
     <div className="flex min-h-screen w-full bg-secondary/40">
       <aside
         style={{ width: collapsed ? 76 : width }}
-        className="relative hidden shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 ease-out md:flex"
+        className="relative hidden h-screen shrink-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar transition-[width] duration-200 ease-out md:sticky md:top-0 md:flex"
       >
-        <div className="flex items-center gap-2 px-4 py-5">
-          <span className="gradient-primary flex size-9 shrink-0 items-center justify-center rounded-xl text-sm font-semibold text-primary-foreground">
-            SH
-          </span>
-          {!collapsed && <span className="truncate text-sm font-semibold tracking-tight">The Students Hub</span>}
+        <div className="flex items-center gap-2 px-3 py-4">
+          <Link to="/home" className="press flex min-w-0 flex-1 items-center transition-opacity hover:opacity-80">
+            <img
+              src={logo.url}
+              alt="The Students Hub"
+              className={cn("h-8 w-auto shrink-0 object-contain", collapsed && "h-7")}
+            />
+          </Link>
+          <button
+            onClick={() => setCollapsed((c) => !c)}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="press flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          >
+            {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+          </button>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 px-3">
+        <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-hidden px-3">
           {NAV.map((item) => (
             <Link
               key={item.to}
@@ -105,17 +133,27 @@ export function DashboardShell() {
             </Link>
           ))}
           {user.isAdmin && (
-            <Link
-              to="/admin"
-              className={cn(
-                "mt-2 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-accent-foreground transition-all duration-200 hover:bg-sidebar-accent",
-                pathname === "/admin" && "bg-primary text-primary-foreground hover:bg-primary",
+            <div className="mt-3 space-y-1 border-t border-sidebar-border pt-3">
+              {!collapsed && (
+                <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Admin
+                </p>
               )}
-              title="Admin Dashboard"
-            >
-              <ShieldCheck className="size-4 shrink-0" />
-              {!collapsed && <span className="truncate">Admin Dashboard</span>}
-            </Link>
+              {ADMIN_NAV.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  title={item.label}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-sidebar-foreground/75 transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    pathname === item.to && "bg-primary text-primary-foreground shadow-soft hover:bg-primary hover:text-primary-foreground",
+                  )}
+                >
+                  <item.icon className="size-4 shrink-0" />
+                  {!collapsed && <span className="truncate">{item.label}</span>}
+                </Link>
+              ))}
+            </div>
           )}
         </nav>
 
@@ -137,13 +175,6 @@ export function DashboardShell() {
               </span>
             )}
           </Link>
-          <button
-            onClick={() => setCollapsed((c) => !c)}
-            className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-sidebar-accent"
-          >
-            {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
-            {!collapsed && "Collapse sidebar"}
-          </button>
         </div>
 
         {!collapsed && (
@@ -212,10 +243,10 @@ export function DashboardShell() {
                     Mark all read
                   </button>
                 </div>
-                {db.notifications.length === 0 && (
+                {inbox.length === 0 && (
                   <p className="px-2 py-4 text-sm text-muted-foreground">Nothing yet.</p>
                 )}
-                {db.notifications.map((n) => (
+                {inbox.map((n) => (
                   <div key={n.id} className="rounded-lg p-2 transition-colors hover:bg-secondary">
                     <p className="text-sm font-medium">{n.title}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">{n.body}</p>
