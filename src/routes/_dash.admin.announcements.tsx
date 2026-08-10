@@ -29,9 +29,6 @@ type Delivery = "announcement" | "notification" | "both";
 function AnnouncementsPage() {
   const { user } = useAuth();
   const db = useDB();
-  if (!user) return null;
-  if (!user.isAdmin) return <AdminOnly />;
-
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [ctaLabel, setCtaLabel] = useState("");
@@ -42,6 +39,9 @@ function AnnouncementsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const cta = useMemo(() => (ctaLabel.trim() && ctaTo.trim() ? { label: ctaLabel.trim(), to: ctaTo.trim() } : undefined), [ctaLabel, ctaTo]);
+
+  if (!user) return null;
+  if (!user.isAdmin) return <AdminOnly />;
 
   const reset = () => {
     setTitle("");
