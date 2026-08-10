@@ -541,6 +541,35 @@ export function getDB(): DB {
   return cache;
 }
 
+/**
+ * Deterministic, data-free snapshot used for the server render and the very
+ * first client render. localStorage isn't available during SSR, so reading it
+ * straight away caused a hydration mismatch that tripped the root error
+ * boundary ("This page didn't load"). Components swap to the real store in an
+ * effect right after mount.
+ */
+let ssrCache: DB | null = null;
+export function ssrDB(): DB {
+  if (ssrCache) return ssrCache;
+  const base = seed();
+  ssrCache = {
+    ...base,
+    users: [],
+    logins: [],
+    activity: [],
+    announcements: [],
+    suggestions: [],
+    tasks: [],
+    notifications: [],
+    notes: [],
+    events: [],
+    presence: {},
+    typing: {},
+    sessionUserId: null,
+  };
+  return ssrCache;
+}
+
 export function setDB(mutate: (db: DB) => void) {
   const db = getDB();
   mutate(db);

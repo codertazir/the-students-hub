@@ -5,6 +5,7 @@ import {
   previewAccent,
   setDB,
   subscribe,
+  ssrDB,
   type ClubEvent,
   type DB,
   type Note,
@@ -38,8 +39,12 @@ function parseJSON<T>(raw: string): T | null {
 
 export function useDB(): DB {
   const [, force] = useState(0);
-  useEffect(() => subscribe(() => force((n) => n + 1)), []);
-  return getDB();
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    setHydrated(true);
+    return subscribe(() => force((n) => n + 1));
+  }, []);
+  return hydrated ? getDB() : ssrDB();
 }
 
 interface AuthValue {
