@@ -1,22 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { CheckSquare, PiggyBank, Plus, Trash2 } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { PiggyBank } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { AdminOnly } from "@/components/admin/AdminOnly";
 import { useAuth, useDB } from "@/lib/auth";
-import { setDB, uid } from "@/lib/store";
+import { setDB } from "@/lib/store";
 
 export const Route = createFileRoute("/_dash/admin/funds")({
   head: () => ({
     meta: [
       { title: "Club Funds — Admin — The Students Hub" },
-      { name: "description", content: "Edit the club funds card and manage member tasks." },
+      { name: "description", content: "Manage the club's funds and financial summary." },
       { property: "og:title", content: "Club Funds — Admin" },
-      { property: "og:description", content: "Update the funds total and assign tasks to members." },
+      { property: "og:description", content: "Manage the club's funds and financial summary." },
     ],
   }),
   component: FundsPage,
@@ -25,21 +22,18 @@ export const Route = createFileRoute("/_dash/admin/funds")({
 function FundsPage() {
   const { user } = useAuth();
   const db = useDB();
+  const f = db.funds;
+
   if (!user) return null;
   if (!user.isAdmin) return <AdminOnly />;
 
-  const f = db.funds;
   const update = (patch: Partial<typeof f>) => setDB((d) => Object.assign(d.funds, patch, { updatedAt: Date.now() }));
-
-  const [taskTitle, setTaskTitle] = useState("");
-  const [taskDue, setTaskDue] = useState("");
-  const [assignee, setAssignee] = useState("all");
 
   const formatted = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(f.total || 0);
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Club Funds" description="Update the funds card members see, and keep an eye on club tasks." />
+      <PageHeader title="Club Funds" description="Manage the financial summary shown to members." />
 
       <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
         <section className="surface-card rise-in space-y-4 p-5">
@@ -80,69 +74,6 @@ function FundsPage() {
         </section>
       </div>
 
-      <section className="surface-card rise-in space-y-4 p-5">
-        <h2 className="flex items-center gap-2 text-sm font-semibold">
-          <CheckSquare className="size-4" /> Tasks ({db.tasks.length})
-        </h2>
-        <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
-          <Input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="Task title" />
-          <Input type="date" value={taskDue} onChange={(e) => setTaskDue(e.target.value)} className="w-40" />
-          <select
-            value={assignee}
-            onChange={(e) => setAssignee(e.target.value)}
-            className="rounded-xl border border-border bg-card px-3 py-2 text-sm"
-          >
-            <option value="all">Everyone</option>
-            {db.users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.fullName || u.email}
-              </option>
-            ))}
-          </select>
-          <Button
-            className="rounded-full"
-            disabled={!taskTitle.trim()}
-            onClick={() => {
-              setDB((d) =>
-                d.tasks.unshift({
-                  id: uid(),
-                  title: taskTitle.trim(),
-                  due: taskDue,
-                  done: false,
-                  createdBy: "system",
-                  assignedTo: assignee,
-                  createdAt: Date.now(),
-                }),
-              );
-              setTaskTitle("");
-              setTaskDue("");
-              setAssignee("all");
-              toast.success("Task created.");
-            }}
-          >
-            <Plus className="size-4" /> Add
-          </Button>
-        </div>
-
-        <ul className="space-y-2">
-          {db.tasks.map((t) => (
-            <li key={t.id} className="flex items-center gap-3 rounded-xl bg-secondary/50 p-3 text-sm">
-              <span className={t.done ? "flex-1 text-muted-foreground line-through" : "flex-1"}>{t.title}</span>
-              <span className="text-xs text-muted-foreground">{t.due || "No due date"}</span>
-              <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs text-accent-foreground">
-                {t.assignedTo === "all" ? "Everyone" : db.users.find((u) => u.id === t.assignedTo)?.fullName || "Member"}
-              </span>
-              <button
-                className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => setDB((d) => { d.tasks = d.tasks.filter((x) => x.id !== t.id); })}
-              >
-                <Trash2 className="size-4" />
-              </button>
-            </li>
-          ))}
-          {db.tasks.length === 0 && <p className="p-4 text-center text-sm text-muted-foreground">No tasks yet.</p>}
-        </ul>
-      </section>
     </div>
   );
 }

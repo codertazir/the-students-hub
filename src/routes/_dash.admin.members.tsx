@@ -38,9 +38,6 @@ function MembersPage() {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
 
-  if (!user) return null;
-  if (!user.isAdmin) return <AdminOnly />;
-
   const online = new Set(
     Object.entries(db.presence)
       .filter(([, ts]) => Date.now() - ts < ONLINE_WINDOW_MS)
@@ -52,6 +49,9 @@ function MembersPage() {
     if (!term) return db.users;
     return db.users.filter((u) => u.fullName.toLowerCase().includes(term) || u.email.toLowerCase().includes(term));
   }, [db.users, q]);
+
+  if (!user) return null;
+  if (!user.isAdmin) return <AdminOnly />;
 
   const detail = db.users.find((u) => u.id === selected) ?? null;
 

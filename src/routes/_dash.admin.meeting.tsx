@@ -26,11 +26,11 @@ export const Route = createFileRoute("/_dash/admin/meeting")({
 function MeetingPage() {
   const { user } = useAuth();
   const db = useDB();
+  const [newItem, setNewItem] = useState("");
+  const m = db.meeting;
+
   if (!user) return null;
   if (!user.isAdmin) return <AdminOnly />;
-
-  const m = db.meeting;
-  const [newItem, setNewItem] = useState("");
 
   const update = (patch: Partial<typeof m>) => setDB((d) => Object.assign(d.meeting, patch));
 

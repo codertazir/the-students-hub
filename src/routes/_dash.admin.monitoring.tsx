@@ -23,9 +23,6 @@ function MonitoringPage() {
   const db = useDB();
   const [q, setQ] = useState("");
 
-  if (!user) return null;
-  if (!user.isAdmin) return <AdminOnly />;
-
   const online = Object.entries(db.presence).filter(([, ts]) => Date.now() - ts < ONLINE_WINDOW_MS);
   const startOfDay = new Date().setHours(0, 0, 0, 0);
   const signInsToday = db.logins.filter((l) => l.ts >= startOfDay).length;
@@ -36,6 +33,9 @@ function MonitoringPage() {
     if (!term) return sorted;
     return sorted.filter((l) => l.email.toLowerCase().includes(term) || l.ip.toLowerCase().includes(term));
   }, [db.logins, q]);
+
+  if (!user) return null;
+  if (!user.isAdmin) return <AdminOnly />;
 
   const stats = [
     { label: "Members", value: db.users.length, icon: Users },

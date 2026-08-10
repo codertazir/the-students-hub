@@ -13,6 +13,7 @@ import {
   Search,
   Users,
   Wallet,
+  ListTodo,
   Lightbulb,
   ShieldCheck,
 } from "lucide-react";
@@ -40,7 +41,8 @@ const ADMIN_NAV = [
   { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { to: "/admin/suggestions", label: "Suggestions", icon: Lightbulb },
   { to: "/admin/meeting", label: "Meeting", icon: CalendarDays },
-  { to: "/admin/funds", label: "Funds & tasks", icon: Wallet },
+  { to: "/admin/funds", label: "Funds", icon: Wallet },
+  { to: "/admin/tasks", label: "Tasks", icon: ListTodo },
   { to: "/admin/members", label: "Members", icon: Users },
   { to: "/admin/monitoring", label: "Monitoring", icon: ShieldCheck },
 ] as const;
@@ -100,13 +102,12 @@ export function DashboardShell() {
         className="relative hidden h-screen shrink-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar transition-[width] duration-200 ease-out md:sticky md:top-0 md:flex"
       >
         <div className="flex items-center gap-2 px-3 py-4">
-          <Link to="/home" className="press flex min-w-0 flex-1 items-center transition-opacity hover:opacity-80">
-            <img
-              src={logo.url}
-              alt="The Students Hub"
-              className={cn("h-8 w-auto shrink-0 object-contain", collapsed && "h-7")}
-            />
-          </Link>
+          {!collapsed && (
+            <Link to="/home" className="press flex min-w-0 flex-1 items-center transition-opacity hover:opacity-80">
+              <img src={logo.url} alt="The Students Hub" className="h-8 w-auto shrink-0 object-contain" />
+            </Link>
+          )}
+          {collapsed && <span className="flex-1" aria-hidden="true" />}
           <button
             onClick={() => setCollapsed((c) => !c)}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}

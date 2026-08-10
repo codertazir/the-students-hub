@@ -9,7 +9,6 @@ import {
   NotebookPen,
   ShieldCheck,
   Sparkles,
-  UserCircle,
   Users,
   Wallet,
 } from "lucide-react";
@@ -93,26 +92,23 @@ function HomePage() {
         <p className="mt-1 text-sm text-muted-foreground">Here's everything happening in the club this week.</p>
       </header>
 
-      {profileIncomplete && (
-        <div className="surface-card fade-slide flex flex-wrap items-center gap-4 border-primary/30 bg-primary-soft p-5">
-          <UserCircle className="size-6 text-primary" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold">Complete your profile</p>
-            <p className="text-sm text-muted-foreground">
-              Add a profile picture and phone number so the committee can reach you.
-            </p>
-          </div>
-          <Link
-            to="/account"
-            className="press rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-transform hover:-translate-y-0.5"
-          >
-            Finish profile
-          </Link>
-        </div>
-      )}
+      <section className="surface-card rise-in p-5 transition-shadow duration-300 hover:shadow-lift">
+        <h2 className="flex items-center gap-2 text-sm font-semibold">
+          <Lightbulb className="size-4 text-primary" /> Suggestions
+        </h2>
+        <ul className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {suggestions.map((s) => (
+            <li key={s.id} className="rounded-xl bg-secondary/50 p-4 transition-all hover:-translate-y-0.5 hover:bg-secondary">
+              <p className="text-sm font-medium">{s.title}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{s.body}</p>
+              {s.cta && <CtaLink cta={s.cta} />}
+            </li>
+          ))}
+        </ul>
+      </section>
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        <section className="surface-card p-5 transition-shadow duration-300 hover:shadow-lift lg:col-span-2">
+      <div className="columns-1 gap-5 lg:columns-2">
+        <section className="surface-card mb-5 break-inside-avoid overflow-hidden border-primary/25 bg-primary-soft/40 p-5 shadow-soft transition-shadow duration-300 hover:shadow-lift">
           <h2 className="flex items-center gap-2 text-sm font-semibold">
             <Megaphone className="size-4 text-primary" /> Announcements
           </h2>
@@ -134,7 +130,7 @@ function HomePage() {
           </div>
         </section>
 
-        <section className="surface-card p-5 transition-shadow duration-300 hover:shadow-lift">
+        <section className="surface-card mb-5 break-inside-avoid p-5 transition-shadow duration-300 hover:shadow-lift">
           <h2 className="flex items-center gap-2 text-sm font-semibold">
             <Wallet className="size-4 text-primary" /> {db.funds.label}
           </h2>
@@ -146,7 +142,7 @@ function HomePage() {
         </section>
 
         {db.meeting.visible && (
-          <section className="surface-card p-5 transition-shadow duration-300 hover:shadow-lift">
+          <section className="surface-card mb-5 break-inside-avoid p-5 transition-shadow duration-300 hover:shadow-lift">
             <h2 className="flex items-center gap-2 text-sm font-semibold">
               <CalendarDays className="size-4 text-primary" /> This week's meeting
             </h2>
@@ -166,7 +162,7 @@ function HomePage() {
           </section>
         )}
 
-        <section className="surface-card p-5 transition-shadow duration-300 hover:shadow-lift">
+        <section className="surface-card mb-5 break-inside-avoid p-5 transition-shadow duration-300 hover:shadow-lift">
           <h2 className="flex items-center gap-2 text-sm font-semibold">
             <CheckCircle2 className="size-4 text-primary" /> Your tasks
           </h2>
@@ -175,7 +171,7 @@ function HomePage() {
           </div>
         </section>
 
-        <section className="surface-card p-5 transition-shadow duration-300 hover:shadow-lift">
+        <section className="surface-card mb-5 break-inside-avoid p-5 transition-shadow duration-300 hover:shadow-lift">
           <h2 className="flex items-center gap-2 text-sm font-semibold">
             <Sparkles className="size-4 text-primary" /> Upcoming events
           </h2>
@@ -231,20 +227,6 @@ function HomePage() {
           )}
         </section>
 
-        <section className="surface-card p-5 transition-shadow duration-300 hover:shadow-lift">
-          <h2 className="flex items-center gap-2 text-sm font-semibold">
-            <Lightbulb className="size-4 text-primary" /> Suggestions
-          </h2>
-          <ul className="mt-4 space-y-2">
-            {suggestions.map((s) => (
-              <li key={s.id} className="rounded-xl bg-secondary/50 p-3 transition-colors hover:bg-secondary">
-                <p className="text-sm font-medium">{s.title}</p>
-                <p className="mt-0.5 text-sm text-muted-foreground">{s.body}</p>
-                {s.cta && <CtaLink cta={s.cta} />}
-              </li>
-            ))}
-          </ul>
-        </section>
       </div>
 
       {user.isAdmin && (
@@ -300,7 +282,8 @@ function HomePage() {
                 { to: "/admin/announcements", label: "Post an announcement" },
                 { to: "/admin/suggestions", label: "Target suggestions" },
                 { to: "/admin/meeting", label: "Edit the weekly meeting" },
-                { to: "/admin/funds", label: "Update funds & tasks" },
+                { to: "/admin/funds", label: "Update club funds" },
+                { to: "/admin/tasks", label: "Manage tasks" },
                 { to: "/admin/monitoring", label: "Review sign-in activity" },
               ].map((l) => (
                 <Link
