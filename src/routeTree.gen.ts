@@ -21,6 +21,7 @@ import { Route as EventsIdRouteImport } from './routes/events.$id'
 import { Route as NotesIdRouteImport } from './routes/notes.$id'
 import { Route as DashAdminAnnouncementsRouteImport } from './routes/_dash.admin.announcements'
 import { Route as DashAdminFundsRouteImport } from './routes/_dash.admin.funds'
+import { Route as DashAdminHomeRouteImport } from './routes/_dash.admin.home'
 import { Route as DashAdminMeetingRouteImport } from './routes/_dash.admin.meeting'
 import { Route as DashAdminMembersRouteImport } from './routes/_dash.admin.members'
 import { Route as DashAdminMonitoringRouteImport } from './routes/_dash.admin.monitoring'
@@ -86,6 +87,11 @@ const DashAdminFundsRoute = DashAdminFundsRouteImport.update({
   path: '/admin/funds',
   getParentRoute: () => DashRoute,
 } as any)
+const DashAdminHomeRoute = DashAdminHomeRouteImport.update({
+  id: '/admin/home',
+  path: '/admin/home',
+  getParentRoute: () => DashRoute,
+} as any)
 const DashAdminMeetingRoute = DashAdminMeetingRouteImport.update({
   id: '/admin/meeting',
   path: '/admin/meeting',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/notes/$id': typeof NotesIdRoute
   '/admin/announcements': typeof DashAdminAnnouncementsRoute
   '/admin/funds': typeof DashAdminFundsRoute
+  '/admin/home': typeof DashAdminHomeRoute
   '/admin/meeting': typeof DashAdminMeetingRoute
   '/admin/members': typeof DashAdminMembersRoute
   '/admin/monitoring': typeof DashAdminMonitoringRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/notes/$id': typeof NotesIdRoute
   '/admin/announcements': typeof DashAdminAnnouncementsRoute
   '/admin/funds': typeof DashAdminFundsRoute
+  '/admin/home': typeof DashAdminHomeRoute
   '/admin/meeting': typeof DashAdminMeetingRoute
   '/admin/members': typeof DashAdminMembersRoute
   '/admin/monitoring': typeof DashAdminMonitoringRoute
@@ -162,6 +170,7 @@ export interface FileRoutesById {
   '/notes/$id': typeof NotesIdRoute
   '/_dash/admin/announcements': typeof DashAdminAnnouncementsRoute
   '/_dash/admin/funds': typeof DashAdminFundsRoute
+  '/_dash/admin/home': typeof DashAdminHomeRoute
   '/_dash/admin/meeting': typeof DashAdminMeetingRoute
   '/_dash/admin/members': typeof DashAdminMembersRoute
   '/_dash/admin/monitoring': typeof DashAdminMonitoringRoute
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/notes/$id'
     | '/admin/announcements'
     | '/admin/funds'
+    | '/admin/home'
     | '/admin/meeting'
     | '/admin/members'
     | '/admin/monitoring'
@@ -200,6 +210,7 @@ export interface FileRouteTypes {
     | '/notes/$id'
     | '/admin/announcements'
     | '/admin/funds'
+    | '/admin/home'
     | '/admin/meeting'
     | '/admin/members'
     | '/admin/monitoring'
@@ -219,6 +230,7 @@ export interface FileRouteTypes {
     | '/notes/$id'
     | '/_dash/admin/announcements'
     | '/_dash/admin/funds'
+    | '/_dash/admin/home'
     | '/_dash/admin/meeting'
     | '/_dash/admin/members'
     | '/_dash/admin/monitoring'
@@ -320,6 +332,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashAdminFundsRouteImport
       parentRoute: typeof DashRoute
     }
+    '/_dash/admin/home': {
+      id: '/_dash/admin/home'
+      path: '/admin/home'
+      fullPath: '/admin/home'
+      preLoaderRoute: typeof DashAdminHomeRouteImport
+      parentRoute: typeof DashRoute
+    }
     '/_dash/admin/meeting': {
       id: '/_dash/admin/meeting'
       path: '/admin/meeting'
@@ -366,6 +385,7 @@ interface DashRouteChildren {
   DashTasksRoute: typeof DashTasksRoute
   DashAdminAnnouncementsRoute: typeof DashAdminAnnouncementsRoute
   DashAdminFundsRoute: typeof DashAdminFundsRoute
+  DashAdminHomeRoute: typeof DashAdminHomeRoute
   DashAdminMeetingRoute: typeof DashAdminMeetingRoute
   DashAdminMembersRoute: typeof DashAdminMembersRoute
   DashAdminMonitoringRoute: typeof DashAdminMonitoringRoute
@@ -381,6 +401,7 @@ const DashRouteChildren: DashRouteChildren = {
   DashTasksRoute: DashTasksRoute,
   DashAdminAnnouncementsRoute: DashAdminAnnouncementsRoute,
   DashAdminFundsRoute: DashAdminFundsRoute,
+  DashAdminHomeRoute: DashAdminHomeRoute,
   DashAdminMeetingRoute: DashAdminMeetingRoute,
   DashAdminMembersRoute: DashAdminMembersRoute,
   DashAdminMonitoringRoute: DashAdminMonitoringRoute,
@@ -400,13 +421,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

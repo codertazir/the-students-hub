@@ -321,3 +321,91 @@ export async function deleteEvent(id: string) {
   await getPrisma().event.deleteMany({ where: { id } });
   return { ok: true };
 }
+
+/* ---------------- shared realtime state ---------------- */
+
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+type Json = { [key: string]: JsonValue };
+
+/** Reads the single shared document every device syncs against. */
+export async function readShared(): Promise<{ version: number; data: Json }> {
+  await requireUser();
+  const prisma = getPrisma();
+  const row = await prisma.sharedState.findUnique({ where: { id: "hub" } });
+  if (!row) return { version: 0, data: {} };
+  return { version: row.version, data: (row.data as Json) ?? {} };
+}
+
+/** Cheap poll: just the version stamp, so clients only refetch on change. */
+export async function readSharedVersion(): Promise<number> {
+  await requireUser();
+  const prisma = getPrisma();
+  const row = await prisma.sharedState.findUnique({
+    where: { id: "hub" },
+    select: { version: true },
+  });
+  return row?.version ?? 0;
+}
+
+/** Shallow top-level merge so two devices editing different areas don't clash. */
+export async function writeShared(patch: Json): Promise<{ version: number; data: Json }> {
+  await requireUser();
+  const prisma = getPrisma();
+  const existing = await prisma.sharedState.findUnique({ where: { id: "hub" } });
+  const merged = { ...((existing?.data as Json) ?? {}), ...patch };
+  const row = await prisma.sharedState.upsert({
+    where: { id: "hub" },
+    update: { data: merged, version: { increment: 1 } },
+    create: { id: "hub", data: merged, version: 1 },
+  });
+  return { version: row.version, data: (row.data as Json) ?? {} };
+}
+
+/* ---------------- activity trail ---------------- */
+
+export async function writeActivity(input: {
+  area: string;
+  action: string;
+  detail?: string | null;
+  meta?: { ipAddress?: string; device?: string; browser?: string; os?: string };
+}) {
+  const me = await requireUser();
+  const prisma = getPrisma();
+  await prisma.activityLog.create({
+    data: {
+      userId: me.id,
+      email: me.email,
+      area: input.area,
+      action: input.action,
+      detail: input.detail ?? null,
+      ipAddress: input.meta?.ipAddress ?? null,
+      device: input.meta?.device ?? null,
+      browser: input.meta?.browser ?? null,
+      os: input.meta?.os ?? null,
+    },
+  });
+  return { ok: true };
+}
+
+export async function listActivity(limit = 300) {
+  const me = await requireUser();
+  const prisma = getPrisma();
+  const rows = await prisma.activityLog.findMany({
+    where: me.role === "admin" ? {} : { userId: me.id },
+    orderBy: { timestamp: "desc" },
+    take: limit,
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    userId: r.userId,
+    email: r.email,
+    area: r.area,
+    action: r.action,
+    detail: r.detail,
+    ipAddress: r.ipAddress,
+    device: r.device,
+    browser: r.browser,
+    os: r.os,
+    ts: r.timestamp.toISOString(),
+  }));
+}

@@ -43,6 +43,10 @@ export interface ActivityLog {
   area: "auth" | "notes" | "events" | "account" | "tasks" | "admin";
   action: string;
   ts: number;
+  ip?: string;
+  device?: string;
+  browser?: string;
+  os?: string;
 }
 
 /** Call to action shared by announcements, suggestions and notifications. */
@@ -59,6 +63,12 @@ export interface Announcement {
   ts: number;
   pinned: boolean;
   cta?: CTA;
+  /** How it was delivered — kept for the admin history view. */
+  channel?: "announcement" | "notification" | "both";
+  /** Who it was aimed at when it was sent. */
+  targets?: "all" | ID[];
+  /** Archived announcements stay in the admin history but leave the home page. */
+  archived?: boolean;
 }
 
 export interface Suggestion {
@@ -70,6 +80,12 @@ export interface Suggestion {
   targets: "all" | ID[];
   ts: number;
 }
+
+/** Per-member reaction to a suggestion: completed it, or dismissed it. */
+export type SuggestionMark = "completed" | "ignored";
+
+/** suggestionId -> userId -> { state, ts } */
+export type SuggestionState = Record<ID, Record<ID, { state: SuggestionMark; ts: number }>>;
 
 export interface Task {
   id: ID;
@@ -128,6 +144,29 @@ export interface NoteBlock {
   lastEditedAt?: number;
   /** For "input" blocks: allow anonymous contribution labels. */
   allowAnonymous?: boolean;
+  /**
+   * For "input" blocks:
+   * - "live"   — one shared text area everyone types into together (default)
+   * - "submit" — each member writes their own answer and submits it
+   */
+  mode?: "live" | "submit";
+  /** Placeholder shown inside the response box. */
+  placeholder?: string;
+  /** Submit-style blocks: allow editing an answer after it has been sent. */
+  allowEditAfterSubmit?: boolean;
+  /** Submit-style blocks: let members read everyone else's answers. */
+  showAllSubmissions?: boolean;
+  /** Submit-style blocks: collected answers. */
+  submissions?: NoteSubmission[];
+}
+
+export interface NoteSubmission {
+  id: ID;
+  userId: ID;
+  authorName: string;
+  text: string;
+  ts: number;
+  anonymous?: boolean;
 }
 
 export interface Note {
@@ -200,12 +239,66 @@ export interface ClubEvent {
   createdAt: number;
 }
 
+/** Cards the admin can reorder / hide on the member home page. */
+export type HomeCardId =
+  | "announcements"
+  | "suggestions"
+  | "meeting"
+  | "tasks"
+  | "notes"
+  | "events"
+  | "funds";
+
+export interface HomeCard {
+  id: HomeCardId;
+  visible: boolean;
+}
+
+export const HOME_CARD_LABELS: Record<HomeCardId, string> = {
+  announcements: "Announcements",
+  suggestions: "Suggestions for you",
+  meeting: "Next meeting",
+  tasks: "Your tasks",
+  notes: "Latest meeting notes",
+  events: "Upcoming events",
+  funds: "Club funds",
+};
+
+export const DEFAULT_HOME_CARDS: HomeCard[] = [
+  { id: "announcements", visible: true },
+  { id: "suggestions", visible: true },
+  { id: "meeting", visible: true },
+  { id: "tasks", visible: true },
+  { id: "notes", visible: true },
+  { id: "events", visible: true },
+  { id: "funds", visible: true },
+];
+
+/** Top-level keys that live in the shared (cross-device) document. */
+export const SHARED_KEYS = [
+  "announcements",
+  "suggestions",
+  "suggestionState",
+  "homeCards",
+  "tasks",
+  "notifications",
+  "notes",
+  "events",
+  "meeting",
+  "funds",
+  "presence",
+  "typing",
+] as const;
+export type SharedKey = (typeof SHARED_KEYS)[number];
+
 export interface DB {
   users: User[];
   logins: LoginRecord[];
   activity: ActivityLog[];
   announcements: Announcement[];
   suggestions: Suggestion[];
+  suggestionState: SuggestionState;
+  homeCards: HomeCard[];
   tasks: Task[];
   notifications: NotificationItem[];
   notes: Note[];
@@ -253,6 +346,8 @@ export function seed(): DB {
       },
     ],
     suggestions: [],
+    suggestionState: {},
+    homeCards: DEFAULT_HOME_CARDS.map((c) => ({ ...c })),
     tasks: [
       {
         id: uid(),
@@ -487,6 +582,15 @@ export function seed(): DB {
 let cache: DB | null = null;
 const listeners = new Set<() => void>();
 
+/** Keeps the saved card order but drops unknown ids and appends new ones. */
+export function mergeHomeCards(saved?: HomeCard[]): HomeCard[] {
+  const known = new Set(DEFAULT_HOME_CARDS.map((c) => c.id));
+  const kept = (saved ?? []).filter((c) => c && known.has(c.id)).map((c) => ({ id: c.id, visible: c.visible !== false }));
+  const seen = new Set(kept.map((c) => c.id));
+  for (const c of DEFAULT_HOME_CARDS) if (!seen.has(c.id)) kept.push({ ...c });
+  return kept;
+}
+
 /** Fills in anything a stored (older) snapshot is missing. */
 function normalize(db: Partial<DB>): DB {
   const base = seed();
@@ -496,6 +600,8 @@ function normalize(db: Partial<DB>): DB {
   merged.activity ??= [];
   merged.announcements ??= base.announcements;
   merged.suggestions ??= [];
+  merged.suggestionState ??= {};
+  merged.homeCards = mergeHomeCards(db.homeCards);
   merged.tasks ??= base.tasks;
   merged.notifications ??= [];
   merged.notes ??= base.notes;
@@ -505,6 +611,12 @@ function normalize(db: Partial<DB>): DB {
   merged.presence ??= {};
   merged.typing ??= {};
   merged.notifications = merged.notifications.map((n) => ({ ...n, targets: n.targets ?? "all" }));
+  merged.announcements = merged.announcements.map((a) => ({
+    ...a,
+    channel: a.channel ?? "announcement",
+    targets: a.targets ?? "all",
+    archived: a.archived ?? false,
+  }));
   merged.notes = merged.notes.map((n, i) => ({
     ...n,
     number: n.number ?? i + 1,
@@ -559,6 +671,8 @@ export function ssrDB(): DB {
     activity: [],
     announcements: [],
     suggestions: [],
+    suggestionState: {},
+    homeCards: DEFAULT_HOME_CARDS.map((c) => ({ ...c })),
     tasks: [],
     notifications: [],
     notes: [],
@@ -605,8 +719,36 @@ export function visibleTasks(db: DB, userId: ID) {
   return db.tasks.filter((t) => t.assignedTo === "all" || t.assignedTo === userId || t.createdBy === userId);
 }
 
-export function visibleSuggestions(db: DB, userId: ID) {
+/** Every suggestion aimed at this member, regardless of their reaction. */
+export function targetedSuggestions(db: DB, userId: ID) {
   return db.suggestions.filter((s) => s.targets === "all" || s.targets.includes(userId));
+}
+
+export function suggestionMark(db: DB, suggestionId: ID, userId: ID) {
+  return db.suggestionState[suggestionId]?.[userId]?.state ?? null;
+}
+
+/** Home page list: hides anything the member completed or ignored. */
+export function visibleSuggestions(db: DB, userId: ID) {
+  return targetedSuggestions(db, userId).filter((s) => !suggestionMark(db, s.id, userId));
+}
+
+export function setSuggestionMark(suggestionId: ID, userId: ID, state: SuggestionMark | null) {
+  setDB((d) => {
+    const row = (d.suggestionState[suggestionId] ??= {});
+    if (state) row[userId] = { state, ts: Date.now() };
+    else delete row[userId];
+  });
+}
+
+/** Admin breakdown for one suggestion card. */
+export function suggestionStats(db: DB, s: Suggestion) {
+  const audience = s.targets === "all" ? db.users.map((u) => u.id) : s.targets;
+  const marks = db.suggestionState[s.id] ?? {};
+  const completed = audience.filter((id) => marks[id]?.state === "completed");
+  const ignored = audience.filter((id) => marks[id]?.state === "ignored");
+  const pending = audience.filter((id) => !marks[id]);
+  return { audience, completed, ignored, pending };
 }
 
 export function visibleNotifications(db: DB, userId: ID) {
@@ -689,4 +831,10 @@ export function logActivity(user: Pick<User, "id" | "email">, area: ActivityLog[
     db.activity.unshift({ id: uid(), userId: user.id, email: user.email, area, action, ts: Date.now() });
     db.activity = db.activity.slice(0, 200);
   });
+  // Persist it too, so history survives devices and shows the real IP/device.
+  if (typeof window !== "undefined") {
+    void import("./hub.functions")
+      .then(({ logActivityRecord }) => logActivityRecord({ data: { area, action } }))
+      .catch(() => undefined);
+  }
 }

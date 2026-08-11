@@ -83,3 +83,33 @@ model Event {
   @@index([createdById])
   @@map("events")
 }
+
+/// Single shared document that keeps every signed-in device in sync
+/// (announcements, suggestions, tasks, home layout, live note answers...).
+model SharedState {
+  id        String   @id @default("hub")
+  data      Json     @default("{}")
+  version   Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@map("shared_state")
+}
+
+/// Durable activity trail shown in admin monitoring + per-account history.
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  email     String
+  area      String
+  action    String
+  detail    String?
+  ipAddress String?
+  device    String?
+  browser   String?
+  os        String?
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+  @@index([timestamp])
+  @@map("activity_logs")
+}
