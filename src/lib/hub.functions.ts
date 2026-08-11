@@ -13,7 +13,12 @@ import {
   saveNote,
   signInUser,
   signOutUser,
+  listActivity,
+  readShared,
+  readSharedVersion,
   updateProfile,
+  writeActivity,
+  writeShared,
 } from "./hub.server";
 
 const credentials = z.object({
@@ -118,3 +123,65 @@ export const upsertEvent = createServerFn({ method: "POST" })
 export const removeEvent = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
   .handler(async ({ data }) => deleteEvent(data.id));
+
+/* ---------------- realtime shared state + activity ---------------- */
+
+export const pullShared = createServerFn({ method: "GET" }).handler(async () => readShared());
+
+export const pullSharedVersion = createServerFn({ method: "GET" }).handler(async () =>
+  readSharedVersion(),
+);
+
+export const pushShared = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ patch: z.record(z.string(), z.unknown()) }).parse(input),
+  )
+  .handler(async ({ data }) => writeShared(data.patch as Parameters<typeof writeShared>[0]));
+
+export const logActivityRecord = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        area: z.string().max(40),
+        action: z.string().max(300),
+        detail: z.string().max(2000).nullable().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const userAgent = getRequestHeader("user-agent") ?? "unknown";
+    const ipAddress = getRequestIP({ xForwardedFor: true }) ?? "unavailable";
+    const os = /Windows/.test(userAgent)
+      ? "Windows"
+      : /Mac OS X/.test(userAgent)
+        ? "macOS"
+        : /Android/.test(userAgent)
+          ? "Android"
+          : /iPhone|iPad/.test(userAgent)
+            ? "iOS"
+            : /Linux/.test(userAgent)
+              ? "Linux"
+              : "Unknown OS";
+    const browser = /Edg\//.test(userAgent)
+      ? "Edge"
+      : /Chrome\//.test(userAgent)
+        ? "Chrome"
+        : /Firefox\//.test(userAgent)
+          ? "Firefox"
+          : /Safari\//.test(userAgent)
+            ? "Safari"
+            : "Unknown browser";
+    const device = /iPad|Tablet/.test(userAgent)
+      ? "Tablet"
+      : /Mobi|Android|iPhone/.test(userAgent)
+        ? "Phone"
+        : "Desktop";
+    return writeActivity({
+      area: data.area,
+      action: data.action,
+      detail: data.detail ?? null,
+      meta: { ipAddress, device, browser, os },
+    });
+  });
+
+export const getActivity = createServerFn({ method: "GET" }).handler(async () => listActivity());

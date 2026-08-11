@@ -6,12 +6,15 @@ import {
   setDB,
   subscribe,
   ssrDB,
+  type ActivityLog,
   type ClubEvent,
   type DB,
   type Note,
   type User,
 } from "./store";
+import { startSync } from "./sync";
 import {
+  getActivity,
   getAdminData,
   getContent,
   getSessionUser,
@@ -120,6 +123,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(t);
   }, [user]);
 
+  // Keep every signed-in device on the same shared document.
+  useEffect(() => {
+    if (!user) return;
+    return startSync();
+  }, [user?.id]);
+
   // Pull notes/events (and admin monitoring data) from PostgreSQL.
   const hydrate = useCallback(async (isAdmin: boolean) => {
     try {
@@ -172,6 +181,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } catch {
       /* offline or not signed in — keep whatever is cached */
+    }
+    try {
+      const rows = await getActivity();
+      setDB((d) => {
+        d.activity = rows.map((r) => ({
+          id: r.id,
+          userId: r.userId ?? "",
+          email: r.email,
+          area: (r.area as ActivityLog["area"]) ?? "account",
+          action: r.action,
+          ts: new Date(r.ts).getTime(),
+          ...(r.ipAddress ? { ip: r.ipAddress } : {}),
+          ...(r.device ? { device: r.device } : {}),
+          ...(r.browser ? { browser: r.browser } : {}),
+          ...(r.os ? { os: r.os } : {}),
+        }));
+      });
+    } catch {
+      /* keep local activity */
     }
     if (!isAdmin) return;
     try {

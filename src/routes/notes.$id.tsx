@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useState } from "react";
 import { ArrowLeft, ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import logo from "@/assets/students-hub-logo.png.asset.json";
-import { Switch } from "@/components/ui/switch";
+import { ResponseBlockSettings, ResponseInput } from "@/components/ResponseInput";
 import { useAuth, useDB } from "@/lib/auth";
 import { setDB, uid, type NoteBlock, type NoteBlockKind } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -85,7 +85,7 @@ function NoteDetailPage() {
         id: uid(),
         kind,
         content: kind === "divider" ? "" : "New content",
-        ...(kind === "input" ? { shared: "", allowAnonymous: true } : {}),
+        ...(kind === "input" ? { shared: "", allowAnonymous: true, mode: "live" as const, submissions: [] } : {}),
       });
     });
   };
@@ -335,96 +335,17 @@ function BlockView({
             className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"
             placeholder="Prompt shown to members"
           />
-          <label className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Switch checked={!!block.allowAnonymous} onCheckedChange={(v) => onPatch({ allowAnonymous: v })} />
-            Allow anonymous responses
-          </label>
+          <ResponseBlockSettings block={block} onPatch={onPatch} />
         </div>
       ) : (
-        <InputBlock block={block} noteId={noteId} userFirstName={userFirstName} userId={userId} onPatch={onPatch} />
+        <ResponseInput
+          block={block}
+          scope={`note:${noteId}`}
+          userId={userId}
+          userName={userFirstName}
+          onPatch={onPatch}
+        />
       )}
     </div>,
-  );
-}
-
-function InputBlock({
-  block,
-  noteId,
-  userFirstName,
-  userId,
-  onPatch,
-}: {
-  block: NoteBlock;
-  noteId: string;
-  userFirstName: string;
-  userId: string;
-  onPatch: (patch: Partial<NoteBlock>) => void;
-}) {
-  const db = useDB();
-  const [anon, setAnon] = useState(false);
-  const clearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const typingKey = `note:${noteId}:${block.id}:${userId}`;
-
-  const others = useMemo(() => {
-    const now = Date.now();
-    return Object.entries(db.typing)
-      .filter(([key, v]) => key.startsWith(`note:${noteId}:${block.id}:`) && key !== typingKey && now - v.ts < TYPING_WINDOW)
-      .map(([, v]) => v.name);
-  }, [db.typing, noteId, block.id, typingKey]);
-
-  useEffect(
-    () => () => {
-      if (clearRef.current) clearTimeout(clearRef.current);
-      setDB((d) => {
-        delete d.typing[typingKey];
-      });
-    },
-    [typingKey],
-  );
-
-  const handleChange = (value: string) => {
-    onPatch({
-      shared: value,
-      lastEditor: anon ? "Anonymous" : userFirstName,
-      lastEditedAt: Date.now(),
-    });
-    setDB((d) => {
-      d.typing[typingKey] = { name: anon ? "Anonymous" : userFirstName, ts: Date.now() };
-    });
-    if (clearRef.current) clearTimeout(clearRef.current);
-    clearRef.current = setTimeout(() => {
-      setDB((d) => {
-        delete d.typing[typingKey];
-      });
-    }, 2500);
-  };
-
-  return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium">{block.content}</p>
-      <textarea
-        value={block.shared ?? ""}
-        onChange={(e) => handleChange(e.target.value)}
-        rows={3}
-        placeholder="Type your response…"
-        className="w-full resize-y rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none transition-colors focus:border-primary"
-      />
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-        <div className="min-h-[1rem]">
-          {block.lastEditedAt ? (
-            <span>Saved · edited by {block.lastEditor ?? "someone"}</span>
-          ) : (
-            <span>No responses yet</span>
-          )}
-          {others.length > 0 && <span className="ml-2 text-primary">{others.join(", ")} typing…</span>}
-        </div>
-        {block.allowAnonymous && (
-          <label className="flex items-center gap-2">
-            <Switch checked={anon} onCheckedChange={setAnon} />
-            Post anonymously
-          </label>
-        )}
-      </div>
-    </div>
   );
 }

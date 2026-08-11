@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { AdminOnly } from "@/components/admin/AdminOnly";
 import { useAuth, useDB } from "@/lib/auth";
-import { setDB, uid, userLabel, type Suggestion } from "@/lib/store";
+import { setDB, suggestionStats, uid, userLabel, type Suggestion } from "@/lib/store";
 
 export const Route = createFileRoute("/_dash/admin/suggestions")({
   head: () => ({
@@ -155,6 +155,26 @@ function SuggestionsPage() {
                 <p className="mt-1 text-xs text-muted-foreground">
                   Targets: {s.targets === "all" ? "Everyone" : s.targets.map((id) => userLabel(db, id)).join(", ") || "No one"}
                 </p>
+                {(() => {
+                  const st = suggestionStats(db, s);
+                  return (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {st.audience.length} received · {st.completed.length} marked done · {st.ignored.length} ignored ·{" "}
+                      {st.pending.length} no response yet
+                    </p>
+                  );
+                })()}
+                <button
+                  className="mt-1 text-xs font-medium text-primary hover:underline"
+                  onClick={() => {
+                    setDB((d) => {
+                      delete d.suggestionState[s.id];
+                    });
+                    toast.success("Reset — this suggestion shows again for everyone.");
+                  }}
+                >
+                  Reset responses
+                </button>
               </div>
               <button
                 className="rounded-full px-2 py-1 text-xs text-primary hover:underline"

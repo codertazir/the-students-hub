@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Home,
   LogOut,
+  LayoutGrid,
   Megaphone,
   NotebookPen,
   PanelLeftClose,
@@ -40,6 +41,7 @@ const NAV = [
 const ADMIN_NAV = [
   { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { to: "/admin/suggestions", label: "Suggestions", icon: Lightbulb },
+  { to: "/admin/home", label: "Home layout", icon: LayoutGrid },
   { to: "/admin/meeting", label: "Meeting", icon: CalendarDays },
   { to: "/admin/funds", label: "Funds", icon: Wallet },
   { to: "/admin/tasks", label: "Tasks", icon: ListTodo },

@@ -15,6 +15,7 @@ import {
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ResponseBlockSettings, ResponseInput } from "@/components/ResponseInput";
 import { useAuth, useDB } from "@/lib/auth";
 import { logActivity, setDB, uid, type EventCard, type EventCardType, type NoteBlock, type NoteBlockKind } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -204,6 +205,8 @@ function NotesPanel({ event }: { event: ReturnType<typeof useDB>["events"][numbe
       if (kind === "input") {
         block.shared = "";
         block.allowAnonymous = false;
+        block.mode = "live";
+        block.submissions = [];
       }
       ev.blocks.push(block);
     });
@@ -281,6 +284,33 @@ function AdminBlockEditor({
   idx: number;
 }) {
   if (block.kind === "divider") return null;
+  if (block.kind === "input")
+    return (
+      <div className="mt-1.5 space-y-1.5">
+        <textarea
+          className={cn(FIELD, "w-full resize-none text-xs")}
+          rows={2}
+          value={block.content}
+          placeholder="Prompt shown to members…"
+          onChange={(e) =>
+            setDB((d) => {
+              const ev = d.events.find((x) => x.id === event.id);
+              if (ev?.blocks[idx]) ev.blocks[idx]!.content = e.target.value;
+            })
+          }
+        />
+        <ResponseBlockSettings
+          block={block}
+          onPatch={(p) =>
+            setDB((d) => {
+              const ev = d.events.find((x) => x.id === event.id);
+              const b = ev?.blocks[idx];
+              if (b) Object.assign(b, p);
+            })
+          }
+        />
+      </div>
+    );
   return (
     <textarea
       className={cn(FIELD, "mt-1.5 w-full resize-none text-xs")}
@@ -299,10 +329,6 @@ function AdminBlockEditor({
 
 function BlockView({ event, block }: { event: ReturnType<typeof useDB>["events"][number]; block: NoteBlock }) {
   const { user } = useAuth();
-  const db = useDB();
-  const [local, setLocal] = useState(block.shared ?? "");
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => setLocal(block.shared ?? ""), [block.shared]);
 
   if (block.kind === "heading") return <h2 className="text-lg font-semibold tracking-tight">{block.content}</h2>;
   if (block.kind === "text") return <p className="text-sm leading-relaxed text-muted-foreground">{block.content}</p>;
@@ -314,44 +340,24 @@ function BlockView({ event, block }: { event: ReturnType<typeof useDB>["events"]
       </div>
     );
 
-  // input block
-  const typingKey = `event-${event.id}-block-${block.id}`;
-  const typist = db.typing[typingKey];
-  const isTypingOther = typist && Date.now() - typist.ts < TYPING_TTL && typist.name !== (user?.fullName || user?.email);
+  // input block — live shared box or per-member submissions
+  const patch = (p: Partial<NoteBlock>) =>
+    setDB((d) => {
+      const ev = d.events.find((x) => x.id === event.id);
+      const b = ev?.blocks.find((x) => x.id === block.id);
+      if (b) Object.assign(b, p);
+    });
+
+  if (!user) return null;
 
   return (
-    <div className="space-y-1.5">
-      <p className="text-sm font-medium">{block.content}</p>
-      <textarea
-        className={cn(FIELD, "w-full resize-none")}
-        rows={3}
-        value={local}
-        onChange={(e) => {
-          const val = e.target.value;
-          setLocal(val);
-          if (!user) return;
-          setDB((d) => {
-            const ev = d.events.find((x) => x.id === event.id);
-            const b = ev?.blocks.find((x) => x.id === block.id);
-            if (b) {
-              b.shared = val;
-              b.lastEditor = user.fullName || user.email;
-              b.lastEditedAt = Date.now();
-            }
-            d.typing[typingKey] = { name: user.fullName || user.email, ts: Date.now() };
-          });
-          if (timer.current) clearTimeout(timer.current);
-          timer.current = setTimeout(() => {
-            setDB((d) => void delete d.typing[typingKey]);
-          }, TYPING_TTL);
-        }}
-        placeholder="Type your answer…"
-      />
-      <div className="flex min-h-4 items-center justify-between text-xs text-muted-foreground">
-        <span>{isTypingOther ? `${typist!.name} is typing…` : ""}</span>
-        {block.lastEditedAt && <span>saved · edited by {block.lastEditor}</span>}
-      </div>
-    </div>
+    <ResponseInput
+      block={block}
+      scope={`event:${event.id}`}
+      userId={user.id}
+      userName={user.fullName || user.email}
+      onPatch={patch}
+    />
   );
 }
 
