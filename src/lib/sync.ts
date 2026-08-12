@@ -136,7 +136,7 @@ export function startSync() {
     clearInterval(timer);
     if (pushTimer) clearTimeout(pushTimer);
     document.removeEventListener("visibilitychange", onVisible);
-    document.removeEventListener("visibilitychange", onVisible);
+
     unsubscribe();
   };
 }
