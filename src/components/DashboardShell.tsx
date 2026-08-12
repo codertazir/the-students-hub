@@ -89,13 +89,69 @@ export function DashboardShell() {
   const online = Object.entries(db.presence).filter(([, ts]) => Date.now() - ts < ONLINE_WINDOW_MS);
   const initials = (user.fullName || user.email).slice(0, 2).toUpperCase();
 
-  const results = query.trim()
+  const q = query.trim().toLowerCase();
+  const hit = (...parts: (string | undefined)[]) => parts.some((p) => (p ?? "").toLowerCase().includes(q));
+  const results: { key: string; label: string; sub?: string; kind: string; go: () => void }[] = q
     ? [
-        ...db.notes.filter((n) => n.title.toLowerCase().includes(query.toLowerCase())).map((n) => ({ label: n.title, kind: "Note", to: "/notes" as const })),
-        ...db.events.filter((e) => e.title.toLowerCase().includes(query.toLowerCase())).map((e) => ({ label: e.title, kind: "Event", to: "/events" as const })),
-        ...db.announcements.filter((a) => a.title.toLowerCase().includes(query.toLowerCase())).map((a) => ({ label: a.title, kind: "Announcement", to: "/home" as const })),
+        ...db.notes
+          .filter((n) => hit(n.title, `#${n.number}`, n.blocks.map((b) => b.content).join(" ")))
+          .map((n) => ({
+            key: `note-${n.id}`,
+            label: n.title,
+            sub: n.dateLabel,
+            kind: "Note",
+            go: () => void navigate({ to: "/notes/$id", params: { id: n.id } }),
+          })),
+        ...db.events
+          .filter((e) => hit(e.title, `#${e.number}`, e.location, e.blocks.map((b) => b.content).join(" ")))
+          .map((e) => ({
+            key: `event-${e.id}`,
+            label: e.title,
+            sub: `${e.dateLabel} · ${e.location}`,
+            kind: "Event",
+            go: () => void navigate({ to: "/events/$id", params: { id: e.id } }),
+          })),
+        ...db.announcements
+          .filter((a) => !a.archived && hit(a.title, a.body))
+          .map((a) => ({
+            key: `ann-${a.id}`,
+            label: a.title,
+            sub: a.body,
+            kind: "Announcement",
+            go: () => void navigate({ to: "/home" }),
+          })),
+        ...db.tasks
+          .filter((t) => (t.assignedTo === "all" || t.assignedTo === user.id || user.isAdmin) && hit(t.title))
+          .map((t) => ({
+            key: `task-${t.id}`,
+            label: t.title,
+            sub: t.due ? `Due ${t.due}` : undefined,
+            kind: "Task",
+            go: () => void navigate({ to: "/tasks" }),
+          })),
+        ...db.suggestions
+          .filter((s) => hit(s.title, s.body))
+          .map((s) => ({
+            key: `sug-${s.id}`,
+            label: s.title,
+            sub: s.body,
+            kind: "Suggestion",
+            go: () => void navigate({ to: "/home" }),
+          })),
+        ...(user.isAdmin
+          ? db.users
+              .filter((u) => hit(u.fullName, u.email))
+              .map((u) => ({
+                key: `user-${u.id}`,
+                label: u.fullName || u.email,
+                sub: u.email,
+                kind: "Member",
+                go: () => void navigate({ to: "/admin/members" }),
+              }))
+          : []),
       ]
     : [];
+
 
   return (
     <div className="flex min-h-screen w-full bg-secondary/40">
