@@ -10,12 +10,13 @@ import {
   MessageCircleQuestion,
   PanelRightClose,
   PanelRightOpen,
+  Pencil,
   Plus,
   Trash2,
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
-import { ResponseBlockSettings, ResponseInput } from "@/components/ResponseInput";
+import { NoteBlocksEditor } from "@/components/NoteBlocksEditor";
 import { useAuth, useDB } from "@/lib/auth";
 import { logActivity, setDB, uid, type EventCard, type EventCardType, type NoteBlock, type NoteBlockKind } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -194,6 +195,7 @@ function Labeled({ label, children }: { label: string; children: React.ReactNode
 
 function NotesPanel({ event }: { event: ReturnType<typeof useDB>["events"][number] }) {
   const { user } = useAuth();
+  const [editing, setEditing] = useState(false);
   if (!user) return null;
   const isAdmin = user.isAdmin;
 
@@ -201,64 +203,69 @@ function NotesPanel({ event }: { event: ReturnType<typeof useDB>["events"][numbe
     setDB((d) => {
       const ev = d.events.find((x) => x.id === event.id);
       if (!ev) return;
-      const block: NoteBlock = { id: uid(), kind, content: kind === "divider" ? "" : "New content" };
-      if (kind === "input") {
-        block.shared = "";
-        block.allowAnonymous = false;
-        block.mode = "live";
-        block.submissions = [];
-      }
-      ev.blocks.push(block);
+      ev.blocks.push({
+        id: uid(),
+        kind,
+        content: kind === "divider" ? "" : "New content",
+        ...(kind === "input" ? { shared: "", allowAnonymous: true, mode: "live" as const, submissions: [] } : {}),
+      });
     });
   };
 
-  const move = (idx: number, dir: -1 | 1) => {
+  const patchBlock = (blockId: string, patch: Partial<NoteBlock>) => {
+    setDB((d) => {
+      const ev = d.events.find((x) => x.id === event.id);
+      const b = ev?.blocks.find((x) => x.id === blockId);
+      if (b) Object.assign(b, patch);
+    });
+  };
+
+  const moveBlock = (blockId: string, dir: -1 | 1) => {
     setDB((d) => {
       const ev = d.events.find((x) => x.id === event.id);
       if (!ev) return;
+      const idx = ev.blocks.findIndex((b) => b.id === blockId);
       const j = idx + dir;
-      if (j < 0 || j >= ev.blocks.length) return;
+      if (idx < 0 || j < 0 || j >= ev.blocks.length) return;
       const [b] = ev.blocks.splice(idx, 1);
-      ev.blocks.splice(j, 0, b!);
+      if (b) ev.blocks.splice(j, 0, b);
     });
   };
 
-  const remove = (idx: number) => {
+  const deleteBlock = (blockId: string) => {
     setDB((d) => {
       const ev = d.events.find((x) => x.id === event.id);
-      if (ev) ev.blocks.splice(idx, 1);
+      if (ev) ev.blocks = ev.blocks.filter((b) => b.id !== blockId);
     });
   };
 
   return (
     <div className="surface-card space-y-4 rounded-2xl border border-border p-5 sm:p-7">
-      {event.blocks.length === 0 && <p className="text-sm text-muted-foreground">No notes for this event yet.</p>}
-      {event.blocks.map((block, idx) => (
-        <div key={block.id} className="group relative">
-          <BlockView event={event} block={block} />
-          {isAdmin && (
-            <div className="absolute -right-1 top-0 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-              <IconBtn onClick={() => move(idx, -1)}><ChevronLeft className="size-3.5 -rotate-90" /></IconBtn>
-              <IconBtn onClick={() => move(idx, 1)}><ChevronRight className="size-3.5 -rotate-90" /></IconBtn>
-              <IconBtn onClick={() => remove(idx)}><Trash2 className="size-3.5" /></IconBtn>
-            </div>
-          )}
-          {isAdmin && <AdminBlockEditor event={event} block={block} idx={idx} />}
-        </div>
-      ))}
       {isAdmin && (
-        <div className="flex flex-wrap gap-2 border-t border-border pt-3">
-          {(["heading", "text", "callout", "divider", "input"] as NoteBlockKind[]).map((k) => (
-            <button
-              key={k}
-              onClick={() => addBlock(k)}
-              className="rounded-full border border-dashed border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary"
-            >
-              + {k}
-            </button>
-          ))}
+        <div className="flex justify-end">
+          <button
+            onClick={() => setEditing((v) => !v)}
+            className={cn(
+              "inline-flex shrink-0 items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-medium transition-all duration-200",
+              editing ? "bg-primary text-primary-foreground" : "hover:bg-secondary",
+            )}
+          >
+            <Pencil className="size-3.5" /> {editing ? "Done editing" : "Edit layout"}
+          </button>
         </div>
       )}
+      <NoteBlocksEditor
+        blocks={event.blocks}
+        editing={editing && isAdmin}
+        scope={`event:${event.id}`}
+        userId={user.id}
+        userName={user.fullName.split(" ")[0] || user.email}
+        onPatchBlock={patchBlock}
+        onMoveBlock={moveBlock}
+        onDeleteBlock={deleteBlock}
+        onAddBlock={addBlock}
+        emptyLabel="No notes for this event yet."
+      />
     </div>
   );
 }
@@ -271,93 +278,6 @@ function IconBtn({ onClick, children }: { onClick: () => void; children: React.R
     >
       {children}
     </button>
-  );
-}
-
-function AdminBlockEditor({
-  event,
-  block,
-  idx,
-}: {
-  event: ReturnType<typeof useDB>["events"][number];
-  block: NoteBlock;
-  idx: number;
-}) {
-  if (block.kind === "divider") return null;
-  if (block.kind === "input")
-    return (
-      <div className="mt-1.5 space-y-1.5">
-        <textarea
-          className={cn(FIELD, "w-full resize-none text-xs")}
-          rows={2}
-          value={block.content}
-          placeholder="Prompt shown to members…"
-          onChange={(e) =>
-            setDB((d) => {
-              const ev = d.events.find((x) => x.id === event.id);
-              if (ev?.blocks[idx]) ev.blocks[idx]!.content = e.target.value;
-            })
-          }
-        />
-        <ResponseBlockSettings
-          block={block}
-          onPatch={(p) =>
-            setDB((d) => {
-              const ev = d.events.find((x) => x.id === event.id);
-              const b = ev?.blocks[idx];
-              if (b) Object.assign(b, p);
-            })
-          }
-        />
-      </div>
-    );
-  return (
-    <textarea
-      className={cn(FIELD, "mt-1.5 w-full resize-none text-xs")}
-      rows={2}
-      value={block.content}
-      placeholder="Edit content…"
-      onChange={(e) =>
-        setDB((d) => {
-          const ev = d.events.find((x) => x.id === event.id);
-          if (ev?.blocks[idx]) ev.blocks[idx].content = e.target.value;
-        })
-      }
-    />
-  );
-}
-
-function BlockView({ event, block }: { event: ReturnType<typeof useDB>["events"][number]; block: NoteBlock }) {
-  const { user } = useAuth();
-
-  if (block.kind === "heading") return <h2 className="text-lg font-semibold tracking-tight">{block.content}</h2>;
-  if (block.kind === "text") return <p className="text-sm leading-relaxed text-muted-foreground">{block.content}</p>;
-  if (block.kind === "divider") return <hr className="border-border" />;
-  if (block.kind === "callout")
-    return (
-      <div className="rounded-xl border border-primary/25 bg-primary-soft p-4 text-sm text-accent-foreground">
-        {block.content}
-      </div>
-    );
-
-  // input block — live shared box or per-member submissions
-  const patch = (p: Partial<NoteBlock>) =>
-    setDB((d) => {
-      const ev = d.events.find((x) => x.id === event.id);
-      const b = ev?.blocks.find((x) => x.id === block.id);
-      if (b) Object.assign(b, p);
-    });
-
-  if (!user) return null;
-
-  return (
-    <ResponseInput
-      block={block}
-      scope={`event:${event.id}`}
-      userId={user.id}
-      userName={user.fullName || user.email}
-      onPatch={patch}
-    />
   );
 }
 
