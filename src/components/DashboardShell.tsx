@@ -91,7 +91,7 @@ export function DashboardShell() {
 
   const q = query.trim().toLowerCase();
   const hit = (...parts: (string | undefined)[]) => parts.some((p) => (p ?? "").toLowerCase().includes(q));
-  const results: { key: string; label: string; sub?: string; kind: string; go: () => void }[] = q
+  const results: { key: string; label: string; sub?: string | undefined; kind: string; go: () => void }[] = q
     ? [
         ...db.notes
           .filter((n) => hit(n.title, `#${n.number}`, n.blocks.map((b) => b.content).join(" ")))
@@ -256,21 +256,38 @@ export function DashboardShell() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search notes, events, announcements…"
+              placeholder="Search notes, events, tasks, announcements…"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && results[0]) {
+                  results[0].go();
+                  setQuery("");
+                } else if (e.key === "Escape") setQuery("");
+              }}
               className="w-full rounded-full border border-input bg-secondary/60 py-2 pl-9 pr-3 text-sm outline-none transition-shadow focus:ring-2 focus:ring-ring/30"
             />
+            {q.length > 0 && results.length === 0 && (
+              <div className="surface-card absolute left-0 right-0 top-11 z-30 p-3 text-sm text-muted-foreground">
+                No matches for “{query.trim()}”.
+              </div>
+            )}
             {results.length > 0 && (
               <div className="surface-card absolute left-0 right-0 top-11 z-30 overflow-hidden p-1">
-                {results.slice(0, 6).map((r) => (
-                  <Link
-                    key={r.kind + r.label}
-                    to={r.to}
-                    onClick={() => setQuery("")}
-                    className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-secondary"
+                {results.slice(0, 8).map((r) => (
+                  <button
+                    key={r.key}
+                    type="button"
+                    onClick={() => {
+                      r.go();
+                      setQuery("");
+                    }}
+                    className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-secondary"
                   >
-                    <span className="truncate">{r.label}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate">{r.label}</span>
+                      {r.sub && <span className="block truncate text-xs text-muted-foreground">{r.sub}</span>}
+                    </span>
                     <span className="shrink-0 text-xs text-muted-foreground">{r.kind}</span>
-                  </Link>
+                  </button>
                 ))}
               </div>
             )}
