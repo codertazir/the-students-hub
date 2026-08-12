@@ -89,13 +89,69 @@ export function DashboardShell() {
   const online = Object.entries(db.presence).filter(([, ts]) => Date.now() - ts < ONLINE_WINDOW_MS);
   const initials = (user.fullName || user.email).slice(0, 2).toUpperCase();
 
-  const results = query.trim()
+  const q = query.trim().toLowerCase();
+  const hit = (...parts: (string | undefined)[]) => parts.some((p) => (p ?? "").toLowerCase().includes(q));
+  const results: { key: string; label: string; sub?: string | undefined; kind: string; go: () => void }[] = q
     ? [
-        ...db.notes.filter((n) => n.title.toLowerCase().includes(query.toLowerCase())).map((n) => ({ label: n.title, kind: "Note", to: "/notes" as const })),
-        ...db.events.filter((e) => e.title.toLowerCase().includes(query.toLowerCase())).map((e) => ({ label: e.title, kind: "Event", to: "/events" as const })),
-        ...db.announcements.filter((a) => a.title.toLowerCase().includes(query.toLowerCase())).map((a) => ({ label: a.title, kind: "Announcement", to: "/home" as const })),
+        ...db.notes
+          .filter((n) => hit(n.title, `#${n.number}`, n.blocks.map((b) => b.content).join(" ")))
+          .map((n) => ({
+            key: `note-${n.id}`,
+            label: n.title,
+            sub: n.dateLabel,
+            kind: "Note",
+            go: () => void navigate({ to: "/notes/$id", params: { id: n.id } }),
+          })),
+        ...db.events
+          .filter((e) => hit(e.title, `#${e.number}`, e.location, e.blocks.map((b) => b.content).join(" ")))
+          .map((e) => ({
+            key: `event-${e.id}`,
+            label: e.title,
+            sub: `${e.dateLabel} · ${e.location}`,
+            kind: "Event",
+            go: () => void navigate({ to: "/events/$id", params: { id: e.id } }),
+          })),
+        ...db.announcements
+          .filter((a) => !a.archived && hit(a.title, a.body))
+          .map((a) => ({
+            key: `ann-${a.id}`,
+            label: a.title,
+            sub: a.body,
+            kind: "Announcement",
+            go: () => void navigate({ to: "/home" }),
+          })),
+        ...db.tasks
+          .filter((t) => (t.assignedTo === "all" || t.assignedTo === user.id || user.isAdmin) && hit(t.title))
+          .map((t) => ({
+            key: `task-${t.id}`,
+            label: t.title,
+            sub: t.due ? `Due ${t.due}` : undefined,
+            kind: "Task",
+            go: () => void navigate({ to: "/tasks" }),
+          })),
+        ...db.suggestions
+          .filter((s) => hit(s.title, s.body))
+          .map((s) => ({
+            key: `sug-${s.id}`,
+            label: s.title,
+            sub: s.body,
+            kind: "Suggestion",
+            go: () => void navigate({ to: "/home" }),
+          })),
+        ...(user.isAdmin
+          ? db.users
+              .filter((u) => hit(u.fullName, u.email))
+              .map((u) => ({
+                key: `user-${u.id}`,
+                label: u.fullName || u.email,
+                sub: u.email,
+                kind: "Member",
+                go: () => void navigate({ to: "/admin/members" }),
+              }))
+          : []),
       ]
     : [];
+
 
   return (
     <div className="flex min-h-screen w-full bg-secondary/40">
@@ -200,21 +256,38 @@ export function DashboardShell() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search notes, events, announcements…"
+              placeholder="Search notes, events, tasks, announcements…"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && results[0]) {
+                  results[0].go();
+                  setQuery("");
+                } else if (e.key === "Escape") setQuery("");
+              }}
               className="w-full rounded-full border border-input bg-secondary/60 py-2 pl-9 pr-3 text-sm outline-none transition-shadow focus:ring-2 focus:ring-ring/30"
             />
+            {q.length > 0 && results.length === 0 && (
+              <div className="surface-card absolute left-0 right-0 top-11 z-30 p-3 text-sm text-muted-foreground">
+                No matches for “{query.trim()}”.
+              </div>
+            )}
             {results.length > 0 && (
               <div className="surface-card absolute left-0 right-0 top-11 z-30 overflow-hidden p-1">
-                {results.slice(0, 6).map((r) => (
-                  <Link
-                    key={r.kind + r.label}
-                    to={r.to}
-                    onClick={() => setQuery("")}
-                    className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-secondary"
+                {results.slice(0, 8).map((r) => (
+                  <button
+                    key={r.key}
+                    type="button"
+                    onClick={() => {
+                      r.go();
+                      setQuery("");
+                    }}
+                    className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-secondary"
                   >
-                    <span className="truncate">{r.label}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate">{r.label}</span>
+                      {r.sub && <span className="block truncate text-xs text-muted-foreground">{r.sub}</span>}
+                    </span>
                     <span className="shrink-0 text-xs text-muted-foreground">{r.kind}</span>
-                  </Link>
+                  </button>
                 ))}
               </div>
             )}
