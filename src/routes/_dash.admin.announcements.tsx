@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Bell, Megaphone, Pin, PinOff, Send, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Bell, Megaphone, Pin, PinOff, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +80,9 @@ function AnnouncementsPage() {
           body: body.trim(),
           ts: Date.now(),
           pinned: true,
+          archived: false,
+          channel: delivery,
+          targets,
           ...(cta ? { cta } : {}),
         });
       });
@@ -186,48 +189,76 @@ function AnnouncementsPage() {
         </div>
       </section>
 
-      <section className="surface-card rise-in space-y-3 p-5">
-        <h2 className="flex items-center gap-2 text-sm font-semibold">
-          <Pin className="size-4" /> Announcements ({db.announcements.length})
-        </h2>
-        <ul className="space-y-2">
-          {[...db.announcements].sort((a, b) => b.ts - a.ts).map((a) => (
-            <li key={a.id} className="flex items-start gap-3 rounded-xl bg-secondary/50 p-3 transition-colors hover:bg-secondary/70">
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{a.title}</p>
-                <p className="truncate text-sm text-muted-foreground">{a.body}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{new Date(a.ts).toLocaleString()}</p>
-              </div>
-              <button
-                title={a.pinned ? "Unpin" : "Pin"}
-                className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                onClick={() => setDB((d) => { const t = d.announcements.find((x) => x.id === a.id); if (t) t.pinned = !t.pinned; })}
-              >
-                {a.pinned ? <PinOff className="size-4" /> : <Pin className="size-4" />}
-              </button>
-              <button
-                className="rounded-full px-2 py-1 text-xs text-primary hover:underline"
-                onClick={() => {
-                  setEditingId(a.id);
-                  setTitle(a.title);
-                  setBody(a.body);
-                  setCtaLabel(a.cta?.label ?? "");
-                  setCtaTo(a.cta?.to ?? "");
-                }}
-              >
-                Edit
-              </button>
-              <button
-                className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => setDB((d) => { d.announcements = d.announcements.filter((x) => x.id !== a.id); })}
-              >
-                <Trash2 className="size-4" />
-              </button>
-            </li>
-          ))}
-          {db.announcements.length === 0 && <p className="p-4 text-center text-sm text-muted-foreground">No announcements yet.</p>}
-        </ul>
-      </section>
+      {([false, true] as const).map((archivedView) => {
+        const list = [...db.announcements].filter((a) => !!a.archived === archivedView).sort((a, b) => b.ts - a.ts);
+        if (archivedView && list.length === 0) return null;
+        return (
+          <section key={String(archivedView)} className="surface-card rise-in space-y-3 p-5">
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              {archivedView ? <Archive className="size-4" /> : <Pin className="size-4" />}
+              {archivedView ? "Archived" : "Live on the home page"} ({list.length})
+            </h2>
+            <ul className="space-y-2">
+              {list.map((a) => (
+                <li key={a.id} className="flex items-start gap-3 rounded-xl bg-secondary/50 p-3 transition-colors hover:bg-secondary/70">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{a.title}</p>
+                    <p className="truncate text-sm text-muted-foreground">{a.body}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {new Date(a.ts).toLocaleString()}
+                      {a.targets && a.targets !== "all"
+                        ? ` · ${a.targets.map((id) => userLabel(db, id)).join(", ") || "No one"}`
+                        : " · Everyone"}
+                    </p>
+                  </div>
+                  {!archivedView && (
+                    <button
+                      title={a.pinned ? "Unpin" : "Pin"}
+                      className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                      onClick={() => setDB((d) => { const t = d.announcements.find((x) => x.id === a.id); if (t) t.pinned = !t.pinned; })}
+                    >
+                      {a.pinned ? <PinOff className="size-4" /> : <Pin className="size-4" />}
+                    </button>
+                  )}
+                  <button
+                    title={archivedView ? "Restore to home page" : "Archive (keeps the history)"}
+                    className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                    onClick={() => {
+                      setDB((d) => { const t = d.announcements.find((x) => x.id === a.id); if (t) t.archived = !archivedView; });
+                      toast.success(archivedView ? "Announcement restored." : "Announcement archived.");
+                    }}
+                  >
+                    {archivedView ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
+                  </button>
+                  <button
+                    className="rounded-full px-2 py-1 text-xs text-primary hover:underline"
+                    onClick={() => {
+                      setEditingId(a.id);
+                      setTitle(a.title);
+                      setBody(a.body);
+                      setCtaLabel(a.cta?.label ?? "");
+                      setCtaTo(a.cta?.to ?? "");
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    title="Delete permanently"
+                    className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => {
+                      if (!window.confirm(`Delete "${a.title}" permanently?`)) return;
+                      setDB((d) => { d.announcements = d.announcements.filter((x) => x.id !== a.id); });
+                    }}
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </li>
+              ))}
+              {list.length === 0 && <p className="p-4 text-center text-sm text-muted-foreground">No announcements yet.</p>}
+            </ul>
+          </section>
+        );
+      })}
 
       <section className="surface-card rise-in space-y-3 p-5">
         <h2 className="flex items-center gap-2 text-sm font-semibold">
