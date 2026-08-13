@@ -5,6 +5,7 @@ export interface SessionData {
 }
 
 function config() {
+  // Read inside the handler so it is evaluated in the request context.
   const password = process.env["SESSION_SECRET"];
   if (!password) throw new Error("SESSION_SECRET is not configured");
   return {
