@@ -6,20 +6,31 @@ export interface SafeUser {
   id: string;
   email: string;
   name: string;
+  preferredName: string | null;
   profilePicture: string | null;
   phoneNumber: string | null;
   dateOfBirth: string | null;
   role: "user" | "admin";
   createdAt: string;
+  lastActiveAt: string | null;
 }
 
 export interface LoginMeta {
   ipAddress: string;
   device: string;
+  deviceType: string;
   userAgent: string;
   browser: string;
   os: string;
 }
+
+/** Every authentication-related event we keep in the login log. */
+export type AuthEvent =
+  | "sign_in"
+  | "sign_out"
+  | "failed_login"
+  | "password_change"
+  | "account_created";
 
 export interface SafeNote {
   id: string;
@@ -46,12 +57,17 @@ export interface SafeEvent {
 export interface SafeLoginLog {
   id: string;
   email: string;
+  name: string | null;
+  event: AuthEvent;
   timestamp: string;
   ipAddress: string | null;
   device: string | null;
+  deviceType: string | null;
   userAgent: string | null;
   browser: string | null;
   os: string | null;
+  sessionId: string | null;
+  detail: string | null;
   userId: string | null;
 }
 
@@ -59,11 +75,13 @@ type DbUser = {
   id: string;
   email: string;
   name: string;
+  preferredName: string | null;
   profilePicture: string | null;
   phoneNumber: string | null;
   dateOfBirth: string | null;
   role: "user" | "admin";
   createdAt: Date;
+  lastActiveAt: Date | null;
 };
 
 /** Strips password + any internals before anything crosses to the browser. */
@@ -72,11 +90,13 @@ function toSafeUser(user: DbUser): SafeUser {
     id: user.id,
     email: user.email,
     name: user.name,
+    preferredName: user.preferredName,
     profilePicture: user.profilePicture,
     phoneNumber: user.phoneNumber,
     dateOfBirth: user.dateOfBirth,
     role: user.role,
     createdAt: user.createdAt.toISOString(),
+    lastActiveAt: user.lastActiveAt ? user.lastActiveAt.toISOString() : null,
   };
 }
 
@@ -84,11 +104,13 @@ const safeUserSelect = {
   id: true,
   email: true,
   name: true,
+  preferredName: true,
   profilePicture: true,
   phoneNumber: true,
   dateOfBirth: true,
   role: true,
   createdAt: true,
+  lastActiveAt: true,
 } as const;
 
 /** Dev-only bootstrap admin, supplied by env — never hard-coded credentials. */
