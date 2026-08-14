@@ -15,6 +15,8 @@ import {
   signInUser,
   signOutUser,
   listActivity,
+  listMonitoring,
+  touchPresence,
   readShared,
   readSharedVersion,
   updateProfile,
@@ -197,3 +199,9 @@ export const logActivityRecord = createServerFn({ method: "POST" })
   });
 
 export const getActivity = createServerFn({ method: "GET" }).handler(async () => listActivity());
+
+/** Admin monitoring feed (users + login log + activity log) straight from the DB. */
+export const getMonitoring = createServerFn({ method: "GET" }).handler(async () => listMonitoring());
+
+/** Presence heartbeat — keeps "last active" in the database. */
+export const heartbeat = createServerFn({ method: "POST" }).handler(async () => touchPresence());
