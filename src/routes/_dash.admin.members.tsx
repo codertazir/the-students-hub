@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ShieldCheck, ShieldOff, UserCog } from "lucide-react";
+import { Mail, ShieldCheck, ShieldOff, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { AdminOnly } from "@/components/admin/AdminOnly";
 import { ONLINE_WINDOW_MS, useAuth, useDB } from "@/lib/auth";
 import { setDB } from "@/lib/store";
+import { adminUpdateEmail } from "@/lib/hub.functions";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_dash/admin/members")({
@@ -154,6 +156,8 @@ function MembersPage() {
               </div>
             </div>
 
+            <EmailEditor key={detail.id} userId={detail.id} email={detail.email} />
+
             <h3 className="text-xs font-semibold uppercase text-muted-foreground">Recent logins</h3>
             <ul className="space-y-1.5 text-sm">
               {db.logins
@@ -177,6 +181,48 @@ function MembersPage() {
           </aside>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Admins are the only ones who can change a member's email address. */
+function EmailEditor({ userId, email }: { userId: string; email: string }) {
+  const [value, setValue] = useState(email);
+  const [busy, setBusy] = useState(false);
+  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+
+  return (
+    <div className="space-y-2 rounded-xl bg-secondary/50 p-3">
+      <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase text-muted-foreground">
+        <Mail className="size-3.5" /> Email address
+      </h3>
+      <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder="member@example.com" />
+      <Button
+        size="sm"
+        className="w-full rounded-full"
+        disabled={!valid || busy || value.trim().toLowerCase() === email.toLowerCase()}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            const res = await adminUpdateEmail({ data: { userId, email: value.trim() } });
+            if (!res.ok) {
+              toast.error("That email is already used by another member.");
+              return;
+            }
+            setDB((d) => {
+              const target = d.users.find((u) => u.id === userId);
+              if (target) target.email = res.user.email;
+            });
+            toast.success("Email updated.");
+          } catch {
+            toast.error("Could not update the email.");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        Save email
+      </Button>
     </div>
   );
 }
