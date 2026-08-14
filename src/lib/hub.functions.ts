@@ -15,6 +15,8 @@ import {
   signInUser,
   signOutUser,
   listActivity,
+  listMonitoring,
+  touchPresence,
   readShared,
   readSharedVersion,
   updateProfile,
@@ -27,41 +29,43 @@ const credentials = z.object({
   password: z.string().min(4),
 });
 
+/** Derives browser / OS / device details from the request headers. */
+function requestMeta() {
+  const userAgent = getRequestHeader("user-agent") ?? "unknown";
+  const ipAddress = getRequestIP({ xForwardedFor: true }) ?? "unavailable";
+  const os = /Windows/.test(userAgent)
+    ? "Windows"
+    : /Mac OS X/.test(userAgent)
+      ? "macOS"
+      : /Android/.test(userAgent)
+        ? "Android"
+        : /iPhone|iPad/.test(userAgent)
+          ? "iOS"
+          : /Linux/.test(userAgent)
+            ? "Linux"
+            : "Unknown OS";
+  const browser = /Edg\//.test(userAgent)
+    ? "Edge"
+    : /Chrome\//.test(userAgent)
+      ? "Chrome"
+      : /Firefox\//.test(userAgent)
+        ? "Firefox"
+        : /Safari\//.test(userAgent)
+          ? "Safari"
+          : "Unknown browser";
+  const deviceType = /iPad|Tablet/.test(userAgent)
+    ? "Tablet"
+    : /Mobi|Android|iPhone/.test(userAgent)
+      ? "Phone"
+      : "Desktop";
+  return { ipAddress, userAgent, os, browser, device: deviceType, deviceType };
+}
+
 export const signIn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => credentials.parse(input))
-  .handler(async ({ data }) => {
-    const userAgent = getRequestHeader("user-agent") ?? "unknown";
-    const ipAddress = getRequestIP({ xForwardedFor: true }) ?? "unavailable";
-    const os = /Windows/.test(userAgent)
-      ? "Windows"
-      : /Mac OS X/.test(userAgent)
-        ? "macOS"
-        : /Android/.test(userAgent)
-          ? "Android"
-          : /iPhone|iPad/.test(userAgent)
-            ? "iOS"
-            : /Linux/.test(userAgent)
-              ? "Linux"
-              : "Unknown OS";
-    const browser = /Edg\//.test(userAgent)
-      ? "Edge"
-      : /Chrome\//.test(userAgent)
-        ? "Chrome"
-        : /Firefox\//.test(userAgent)
-          ? "Firefox"
-          : /Safari\//.test(userAgent)
-            ? "Safari"
-            : "Unknown browser";
-    const device = /iPad|Tablet/.test(userAgent)
-      ? "Tablet"
-      : /Mobi|Android|iPhone/.test(userAgent)
-        ? "Phone"
-        : "Desktop";
+  .handler(async ({ data }) => signInUser(data.email, data.password, requestMeta()));
 
-    return signInUser(data.email, data.password, { ipAddress, device, userAgent, browser, os });
-  });
-
-export const signOut = createServerFn({ method: "POST" }).handler(async () => signOutUser());
+export const signOut = createServerFn({ method: "POST" }).handler(async () => signOutUser(requestMeta()));
 
 export const getSessionUser = createServerFn({ method: "GET" }).handler(async () => currentUser());
 
@@ -76,13 +80,13 @@ export const saveProfile = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data }) => updateProfile(data));
+  .handler(async ({ data }) => updateProfile(data, requestMeta()));
 
 export const setPassword = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z.object({ oldPassword: z.string().min(1), nextPassword: z.string().min(4) }).parse(input),
   )
-  .handler(async ({ data }) => changePassword(data.oldPassword, data.nextPassword));
+  .handler(async ({ data }) => changePassword(data.oldPassword, data.nextPassword, requestMeta()));
 
 export const adminUpdateEmail = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
@@ -195,3 +199,9 @@ export const logActivityRecord = createServerFn({ method: "POST" })
   });
 
 export const getActivity = createServerFn({ method: "GET" }).handler(async () => listActivity());
+
+/** Admin monitoring feed (users + login log + activity log) straight from the DB. */
+export const getMonitoring = createServerFn({ method: "GET" }).handler(async () => listMonitoring());
+
+/** Presence heartbeat — keeps "last active" in the database. */
+export const heartbeat = createServerFn({ method: "POST" }).handler(async () => touchPresence());

@@ -22,11 +22,13 @@ model User {
   email          String     @unique
   password       String
   name           String     @default("")
+  preferredName  String?
   profilePicture String?
   phoneNumber    String?
   dateOfBirth    String?
   role           Role       @default(user)
   createdAt      DateTime   @default(now())
+  lastActiveAt   DateTime?
 
   notes     Note[]
   events    Event[]
@@ -36,20 +38,27 @@ model User {
 }
 
 model LoginLog {
-  id        String   @id @default(cuid())
-  email     String
-  timestamp DateTime @default(now())
-  ipAddress String?
-  device    String?
-  userAgent String?
-  browser   String?
-  os        String?
+  id         String   @id @default(cuid())
+  email      String
+  name       String?
+  /// sign_in | sign_out | failed_login | password_change | account_created
+  event      String   @default("sign_in")
+  timestamp  DateTime @default(now())
+  ipAddress  String?
+  device     String?
+  deviceType String?
+  userAgent  String?
+  browser    String?
+  os         String?
+  sessionId  String?
+  detail     String?
 
   userId String?
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([timestamp])
+  @@index([event])
   @@map("login_logs")
 }
 
@@ -97,17 +106,21 @@ model SharedState {
 
 /// Durable activity trail shown in admin monitoring + per-account history.
 model ActivityLog {
-  id        String   @id @default(cuid())
-  userId    String?
-  email     String
-  area      String
-  action    String
-  detail    String?
-  ipAddress String?
-  device    String?
-  browser   String?
-  os        String?
-  timestamp DateTime @default(now())
+  id         String   @id @default(cuid())
+  userId     String?
+  email      String
+  name       String?
+  area       String
+  action     String
+  detail     String?
+  metadata   Json?
+  ipAddress  String?
+  device     String?
+  deviceType String?
+  userAgent  String?
+  browser    String?
+  os         String?
+  timestamp  DateTime @default(now())
 
   @@index([userId])
   @@index([timestamp])

@@ -2,6 +2,8 @@ import { useSession } from "@tanstack/react-start/server";
 
 export interface SessionData {
   userId?: string;
+  /** Identifies this browser session in the login log. */
+  sessionId?: string;
 }
 
 function config() {

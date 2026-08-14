@@ -6,20 +6,31 @@ export interface SafeUser {
   id: string;
   email: string;
   name: string;
+  preferredName: string | null;
   profilePicture: string | null;
   phoneNumber: string | null;
   dateOfBirth: string | null;
   role: "user" | "admin";
   createdAt: string;
+  lastActiveAt: string | null;
 }
 
 export interface LoginMeta {
   ipAddress: string;
   device: string;
+  deviceType: string;
   userAgent: string;
   browser: string;
   os: string;
 }
+
+/** Every authentication-related event we keep in the login log. */
+export type AuthEvent =
+  | "sign_in"
+  | "sign_out"
+  | "failed_login"
+  | "password_change"
+  | "account_created";
 
 export interface SafeNote {
   id: string;
@@ -46,12 +57,17 @@ export interface SafeEvent {
 export interface SafeLoginLog {
   id: string;
   email: string;
+  name: string | null;
+  event: AuthEvent;
   timestamp: string;
   ipAddress: string | null;
   device: string | null;
+  deviceType: string | null;
   userAgent: string | null;
   browser: string | null;
   os: string | null;
+  sessionId: string | null;
+  detail: string | null;
   userId: string | null;
 }
 
@@ -59,11 +75,13 @@ type DbUser = {
   id: string;
   email: string;
   name: string;
+  preferredName: string | null;
   profilePicture: string | null;
   phoneNumber: string | null;
   dateOfBirth: string | null;
   role: "user" | "admin";
   createdAt: Date;
+  lastActiveAt: Date | null;
 };
 
 /** Strips password + any internals before anything crosses to the browser. */
@@ -72,11 +90,13 @@ function toSafeUser(user: DbUser): SafeUser {
     id: user.id,
     email: user.email,
     name: user.name,
+    preferredName: user.preferredName,
     profilePicture: user.profilePicture,
     phoneNumber: user.phoneNumber,
     dateOfBirth: user.dateOfBirth,
     role: user.role,
     createdAt: user.createdAt.toISOString(),
+    lastActiveAt: user.lastActiveAt ? user.lastActiveAt.toISOString() : null,
   };
 }
 
@@ -84,11 +104,13 @@ const safeUserSelect = {
   id: true,
   email: true,
   name: true,
+  preferredName: true,
   profilePicture: true,
   phoneNumber: true,
   dateOfBirth: true,
   role: true,
   createdAt: true,
+  lastActiveAt: true,
 } as const;
 
 /** Dev-only bootstrap admin, supplied by env — never hard-coded credentials. */
@@ -97,6 +119,67 @@ function adminBootstrap() {
     email: process.env["ADMIN_EMAIL"] ?? "admin@isg.edu.sa",
     password: process.env["ADMIN_PASSWORD"] ?? "admin",
   };
+}
+
+/** Person-facing label used in every log line. */
+function displayName(user: { name: string; preferredName?: string | null; email: string }) {
+  return user.preferredName || user.name || user.email;
+}
+
+/** Writes one authentication event to the login log. */
+async function writeAuthEvent(input: {
+  event: AuthEvent;
+  email: string;
+  name?: string | null;
+  userId?: string | null;
+  sessionId?: string | null;
+  detail?: string | null;
+  meta: LoginMeta;
+}) {
+  await getPrisma().loginLog.create({
+    data: {
+      email: input.email,
+      name: input.name ?? null,
+      event: input.event,
+      userId: input.userId ?? null,
+      sessionId: input.sessionId ?? null,
+      detail: input.detail ?? null,
+      ipAddress: input.meta.ipAddress,
+      device: input.meta.device,
+      deviceType: input.meta.deviceType,
+      userAgent: input.meta.userAgent,
+      browser: input.meta.browser,
+      os: input.meta.os,
+    },
+  });
+}
+
+/** Internal activity writer used by the server when there is no client call. */
+async function recordActivity(input: {
+  user: SafeUser;
+  area: string;
+  action: string;
+  detail?: string | null;
+  metadata?: Record<string, unknown> | null;
+  meta?: Partial<LoginMeta>;
+}) {
+  await getPrisma().activityLog.create({
+    data: {
+      userId: input.user.id,
+      email: input.user.email,
+      name: displayName(input.user),
+      area: input.area,
+      action: input.action,
+      detail: input.detail ?? null,
+      metadata: (input.metadata ?? undefined) as never,
+      ipAddress: input.meta?.ipAddress ?? null,
+      device: input.meta?.device ?? null,
+      deviceType: input.meta?.deviceType ?? null,
+      userAgent: input.meta?.userAgent ?? null,
+      browser: input.meta?.browser ?? null,
+      os: input.meta?.os ?? null,
+    },
+  });
 }
 
 export async function signInUser(email: string, password: string, meta: LoginMeta) {
@@ -110,7 +193,17 @@ export async function signInUser(email: string, password: string, meta: LoginMet
 
   if (existing) {
     const ok = isBootstrapAdmin || (await verifyPassword(password, existing.password));
-    if (!ok) throw new Error("Incorrect password for this account.");
+    if (!ok) {
+      await writeAuthEvent({
+        event: "failed_login",
+        email,
+        name: existing.preferredName || existing.name || null,
+        userId: existing.id,
+        detail: "Incorrect password",
+        meta,
+      });
+      throw new Error("Incorrect password for this account.");
+    }
     user = existing;
   } else {
     user = await prisma.user.create({
@@ -125,26 +218,62 @@ export async function signInUser(email: string, password: string, meta: LoginMet
     created = true;
   }
 
-  await prisma.loginLog.create({
-    data: {
-      email,
-      userId: user.id,
-      ipAddress: meta.ipAddress,
-      device: meta.device,
-      userAgent: meta.userAgent,
-      browser: meta.browser,
-      os: meta.os,
-    },
+  const sessionId = crypto.randomUUID();
+  const safe = toSafeUser(user);
+
+  await writeAuthEvent({
+    event: created ? "account_created" : "sign_in",
+    email,
+    name: displayName(safe),
+    userId: user.id,
+    sessionId,
+    detail: `${meta.browser} on ${meta.os} (${meta.deviceType})`,
+    meta,
+  });
+  await recordActivity({
+    user: safe,
+    area: "auth",
+    action: created
+      ? `${displayName(safe)} created an account and signed in`
+      : `${displayName(safe)} signed in`,
+    detail: `${meta.browser} on ${meta.os} · ${meta.ipAddress}`,
+    metadata: { sessionId },
+    meta,
+  });
+
+  const refreshed = await prisma.user.update({
+    where: { id: user.id },
+    data: { lastActiveAt: new Date() },
+    select: safeUserSelect,
   });
 
   const session = await getAppSession();
-  await session.update({ userId: user.id });
+  await session.update({ userId: user.id, sessionId });
 
-  return { user: toSafeUser(user), created };
+  return { user: toSafeUser(refreshed), created };
 }
 
-export async function signOutUser() {
+export async function signOutUser(meta: LoginMeta) {
   const session = await getAppSession();
+  const me = await currentUser();
+  if (me) {
+    await writeAuthEvent({
+      event: "sign_out",
+      email: me.email,
+      name: displayName(me),
+      userId: me.id,
+      sessionId: session.data.sessionId ?? null,
+      detail: "Signed out of this device",
+      meta,
+    });
+    await recordActivity({
+      user: me,
+      area: "auth",
+      action: `${displayName(me)} signed out`,
+      detail: `${meta.browser} on ${meta.os} · ${meta.ipAddress}`,
+      meta,
+    });
+  }
   await session.clear();
   return { ok: true };
 }
@@ -155,6 +284,14 @@ export async function currentUser(): Promise<SafeUser | null> {
   if (!userId) return null;
   const user = await getPrisma().user.findUnique({ where: { id: userId }, select: safeUserSelect });
   return user ? toSafeUser(user) : null;
+}
+
+/** Heartbeat: keeps the DB the source of truth for "last active"/online status. */
+export async function touchPresence() {
+  const me = await currentUser();
+  if (!me) return { ok: false as const };
+  await getPrisma().user.update({ where: { id: me.id }, data: { lastActiveAt: new Date() } });
+  return { ok: true as const };
 }
 
 async function requireUser() {
@@ -169,48 +306,130 @@ async function requireAdmin() {
   return user;
 }
 
-export async function updateProfile(patch: {
-  name?: string | undefined;
-  phoneNumber?: string | null | undefined;
-  profilePicture?: string | null | undefined;
-  dateOfBirth?: string | null | undefined;
-}) {
+export async function updateProfile(
+  patch: {
+    name?: string | undefined;
+    preferredName?: string | null | undefined;
+    phoneNumber?: string | null | undefined;
+    profilePicture?: string | null | undefined;
+    dateOfBirth?: string | null | undefined;
+  },
+  meta?: Partial<LoginMeta>,
+) {
   const me = await requireUser();
   const data: Record<string, string | null> = {};
   if (patch.name !== undefined) data["name"] = patch.name;
+  if (patch.preferredName !== undefined) data["preferredName"] = patch.preferredName;
   if (patch.phoneNumber !== undefined) data["phoneNumber"] = patch.phoneNumber;
   if (patch.profilePicture !== undefined) data["profilePicture"] = patch.profilePicture;
   if (patch.dateOfBirth !== undefined) data["dateOfBirth"] = patch.dateOfBirth;
 
-  const user = await getPrisma().user.update({
+  const prisma = getPrisma();
+  const user = await prisma.user.update({
     where: { id: me.id },
-    data,
+    data: { ...data, lastActiveAt: new Date() },
     select: safeUserSelect,
   });
-  return toSafeUser(user);
+  const safe = toSafeUser(user);
+  const who = displayName(safe);
+
+  // One clear activity line per field that actually changed.
+  const changes: { action: string; detail: string }[] = [];
+  if (patch.name !== undefined && patch.name !== me.name)
+    changes.push({
+      action: `${who} changed their name to "${patch.name}"`,
+      detail: `Previous name: ${me.name || "(empty)"}`,
+    });
+  if (patch.preferredName !== undefined && (patch.preferredName ?? "") !== (me.preferredName ?? ""))
+    changes.push({
+      action: `${who} updated their preferred name`,
+      detail: `Now "${patch.preferredName || "(none)"}" · previously "${me.preferredName || "(none)"}"`,
+    });
+  if (patch.phoneNumber !== undefined && (patch.phoneNumber ?? "") !== (me.phoneNumber ?? ""))
+    changes.push({
+      action: `${who} updated their phone number`,
+      detail: `Now ${patch.phoneNumber || "(none)"}`,
+    });
+  if (patch.profilePicture !== undefined && (patch.profilePicture ?? "") !== (me.profilePicture ?? ""))
+    changes.push({
+      action: patch.profilePicture
+        ? `${who} updated their profile picture`
+        : `${who} removed their profile picture`,
+      detail: "Account → profile picture",
+    });
+  if (patch.dateOfBirth !== undefined && (patch.dateOfBirth ?? "") !== (me.dateOfBirth ?? ""))
+    changes.push({
+      action: `${who} set their date of birth`,
+      detail: `Now ${patch.dateOfBirth || "(none)"}`,
+    });
+
+  for (const change of changes)
+    await recordActivity({ user: safe, area: "account", ...change, ...(meta ? { meta } : {}) });
+
+  return safe;
 }
 
 /** Admins may correct another member's email address. */
 export async function adminSetEmail(userId: string, email: string) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const prisma = getPrisma();
   const clash = await prisma.user.findUnique({ where: { email } });
   if (clash && clash.id !== userId) return { ok: false as const, reason: "taken" as const };
+  const before = await prisma.user.findUnique({ where: { id: userId }, select: safeUserSelect });
   const user = await prisma.user.update({
     where: { id: userId },
     data: { email },
     select: safeUserSelect,
   });
-  return { ok: true as const, user: toSafeUser(user) };
+  const safe = toSafeUser(user);
+  await recordActivity({
+    user: admin,
+    area: "admin",
+    action: `${displayName(admin)} changed the email address of ${displayName(safe)} to ${email}`,
+    detail: `Previous email: ${before?.email ?? "unknown"}`,
+    metadata: { targetUserId: userId },
+  });
+  return { ok: true as const, user: safe };
 }
 
-export async function changePassword(oldPassword: string, nextPassword: string) {
+export async function changePassword(
+  oldPassword: string,
+  nextPassword: string,
+  meta?: LoginMeta,
+) {
   const me = await requireUser();
   const prisma = getPrisma();
   const row = await prisma.user.findUnique({ where: { id: me.id } });
   if (!row) throw new Error("Account not found.");
-  if (!(await verifyPassword(oldPassword, row.password))) return { ok: false };
+  if (!(await verifyPassword(oldPassword, row.password))) {
+    if (meta)
+      await writeAuthEvent({
+        event: "failed_login",
+        email: me.email,
+        name: displayName(me),
+        userId: me.id,
+        detail: "Password change rejected — current password incorrect",
+        meta,
+      });
+    return { ok: false };
+  }
   await prisma.user.update({ where: { id: me.id }, data: { password: await hashPassword(nextPassword) } });
+  if (meta)
+    await writeAuthEvent({
+      event: "password_change",
+      email: me.email,
+      name: displayName(me),
+      userId: me.id,
+      detail: "Password updated from the account page",
+      meta,
+    });
+  await recordActivity({
+    user: me,
+    area: "account",
+    action: `${displayName(me)} changed their password`,
+    detail: "Stored as a bcrypt hash — plain text is never kept",
+    ...(meta ? { meta } : {}),
+  });
   return { ok: true };
 }
 
@@ -249,6 +468,40 @@ export async function listContent() {
   };
 }
 
+function toSafeLogin(l: {
+  id: string;
+  email: string;
+  name: string | null;
+  event: string;
+  timestamp: Date;
+  ipAddress: string | null;
+  device: string | null;
+  deviceType: string | null;
+  userAgent: string | null;
+  browser: string | null;
+  os: string | null;
+  sessionId: string | null;
+  detail: string | null;
+  userId: string | null;
+}): SafeLoginLog {
+  return {
+    id: l.id,
+    email: l.email,
+    name: l.name,
+    event: (l.event as AuthEvent) ?? "sign_in",
+    timestamp: l.timestamp.toISOString(),
+    ipAddress: l.ipAddress,
+    device: l.device,
+    deviceType: l.deviceType,
+    userAgent: l.userAgent,
+    browser: l.browser,
+    os: l.os,
+    sessionId: l.sessionId,
+    detail: l.detail,
+    userId: l.userId,
+  };
+}
+
 export async function listAdminData() {
   await requireAdmin();
   const prisma = getPrisma();
@@ -256,18 +509,62 @@ export async function listAdminData() {
     prisma.user.findMany({ orderBy: { createdAt: "desc" }, select: safeUserSelect }),
     prisma.loginLog.findMany({ orderBy: { timestamp: "desc" }, take: 200 }),
   ]);
+  return { users: users.map(toSafeUser), logins: logs.map(toSafeLogin) };
+}
+
+/**
+ * Everything the admin monitoring + member detail screens need, straight from
+ * PostgreSQL. Polled by admins so the screens stay live without a refresh.
+ */
+export async function listMonitoring() {
+  await requireAdmin();
+  const prisma = getPrisma();
+  const [users, logins, activity, loginGroups, activityGroups, notes, events] = await Promise.all([
+    prisma.user.findMany({ orderBy: { createdAt: "desc" }, select: safeUserSelect }),
+    prisma.loginLog.findMany({ orderBy: { timestamp: "desc" }, take: 500 }),
+    prisma.activityLog.findMany({ orderBy: { timestamp: "desc" }, take: 500 }),
+    prisma.loginLog.groupBy({ by: ["userId"], _count: { _all: true }, _max: { timestamp: true } }),
+    prisma.activityLog.groupBy({ by: ["userId"], _count: { _all: true }, _max: { timestamp: true } }),
+    prisma.note.count(),
+    prisma.event.count(),
+  ]);
+
+  const loginStats = new Map(loginGroups.map((g) => [g.userId ?? "", g]));
+  const activityStats = new Map(activityGroups.map((g) => [g.userId ?? "", g]));
+
   return {
-    users: users.map(toSafeUser),
-    logins: logs.map<SafeLoginLog>((l) => ({
-      id: l.id,
-      email: l.email,
-      timestamp: l.timestamp.toISOString(),
-      ipAddress: l.ipAddress,
-      device: l.device,
-      userAgent: l.userAgent,
-      browser: l.browser,
-      os: l.os,
-      userId: l.userId,
+    fetchedAt: new Date().toISOString(),
+    counts: { notes, events },
+    users: users.map((u) => {
+      const safe = toSafeUser(u);
+      const l = loginStats.get(u.id);
+      const a = activityStats.get(u.id);
+      return {
+        ...safe,
+        displayName: displayName(safe),
+        loginCount: l?._count._all ?? 0,
+        activityCount: a?._count._all ?? 0,
+        lastLoginAt: l?._max.timestamp ? l._max.timestamp.toISOString() : null,
+        lastActivityAt: a?._max.timestamp ? a._max.timestamp.toISOString() : null,
+      };
+    }),
+    logins: logins.map(toSafeLogin),
+    activity: activity.map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      email: r.email,
+      name: r.name,
+      area: r.area,
+      action: r.action,
+      detail: r.detail,
+      metadata: r.metadata == null ? null : JSON.stringify(r.metadata),
+      ipAddress: r.ipAddress,
+      device: r.device,
+      deviceType: r.deviceType,
+      userAgent: r.userAgent,
+      browser: r.browser,
+      os: r.os,
+      ts: r.timestamp.toISOString(),
     })),
   };
 }

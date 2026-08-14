@@ -50,7 +50,7 @@ const ADMIN_NAV = [
 ] as const;
 
 export function DashboardShell() {
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const db = useDB();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -60,8 +60,10 @@ export function DashboardShell() {
   const dragging = useRef(false);
 
   useEffect(() => {
-    if (!user) navigate({ to: "/log-in" });
-  }, [user, navigate]);
+    // Wait for the server session to restore, otherwise a hard refresh of any
+    // dashboard URL bounces to /log-in and then back to /home.
+    if (!loading && !user) navigate({ to: "/log-in" });
+  }, [user, loading, navigate]);
 
   const onMove = useCallback((e: MouseEvent) => {
     if (!dragging.current) return;
