@@ -83,6 +83,15 @@ export const setPassword = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => changePassword(data.oldPassword, data.nextPassword));
 
+export const adminUpdateEmail = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({ userId: z.string().min(1), email: z.string().trim().email().max(255) })
+      .parse(input),
+  )
+  .handler(async ({ data }) => adminSetEmail(data.userId, data.email.toLowerCase()));
+
+
 export const getContent = createServerFn({ method: "GET" }).handler(async () => listContent());
 
 export const getAdminData = createServerFn({ method: "GET" }).handler(async () => listAdminData());
