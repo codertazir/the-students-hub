@@ -50,7 +50,7 @@ const ADMIN_NAV = [
 ] as const;
 
 export function DashboardShell() {
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const db = useDB();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });

@@ -557,7 +557,7 @@ export async function listMonitoring() {
       area: r.area,
       action: r.action,
       detail: r.detail,
-      metadata: (r.metadata ?? null) as Record<string, unknown> | null,
+      metadata: r.metadata == null ? null : JSON.stringify(r.metadata),
       ipAddress: r.ipAddress,
       device: r.device,
       deviceType: r.deviceType,
