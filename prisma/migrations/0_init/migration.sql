@@ -49,3 +49,41 @@ CREATE TABLE IF NOT EXISTS "events" (
   "createdById" TEXT NOT NULL REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 CREATE INDEX IF NOT EXISTS "events_createdById_idx" ON "events"("createdById");
+
+-- Shared realtime document + durable audit trail
+CREATE TABLE IF NOT EXISTS "shared_state" (
+  "id" TEXT PRIMARY KEY DEFAULT 'hub',
+  "data" JSONB NOT NULL DEFAULT '{}',
+  "version" INTEGER NOT NULL DEFAULT 0,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS "activity_logs" (
+  "id" TEXT PRIMARY KEY,
+  "userId" TEXT,
+  "email" TEXT NOT NULL,
+  "area" TEXT NOT NULL,
+  "action" TEXT NOT NULL,
+  "detail" TEXT,
+  "ipAddress" TEXT,
+  "device" TEXT,
+  "browser" TEXT,
+  "os" TEXT,
+  "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS "activity_logs_userId_idx" ON "activity_logs"("userId");
+CREATE INDEX IF NOT EXISTS "activity_logs_timestamp_idx" ON "activity_logs"("timestamp");
+
+-- Monitoring detail columns
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "preferredName" TEXT;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "lastActiveAt" TIMESTAMP(3);
+ALTER TABLE "login_logs" ADD COLUMN IF NOT EXISTS "event" TEXT NOT NULL DEFAULT 'sign_in';
+ALTER TABLE "login_logs" ADD COLUMN IF NOT EXISTS "deviceType" TEXT;
+ALTER TABLE "login_logs" ADD COLUMN IF NOT EXISTS "sessionId" TEXT;
+ALTER TABLE "login_logs" ADD COLUMN IF NOT EXISTS "detail" TEXT;
+ALTER TABLE "login_logs" ADD COLUMN IF NOT EXISTS "name" TEXT;
+CREATE INDEX IF NOT EXISTS "login_logs_event_idx" ON "login_logs"("event");
+ALTER TABLE "activity_logs" ADD COLUMN IF NOT EXISTS "userAgent" TEXT;
+ALTER TABLE "activity_logs" ADD COLUMN IF NOT EXISTS "deviceType" TEXT;
+ALTER TABLE "activity_logs" ADD COLUMN IF NOT EXISTS "name" TEXT;
+ALTER TABLE "activity_logs" ADD COLUMN IF NOT EXISTS "metadata" JSONB;
