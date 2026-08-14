@@ -190,6 +190,20 @@ export async function updateProfile(patch: {
   return toSafeUser(user);
 }
 
+/** Admins may correct another member's email address. */
+export async function adminSetEmail(userId: string, email: string) {
+  await requireAdmin();
+  const prisma = getPrisma();
+  const clash = await prisma.user.findUnique({ where: { email } });
+  if (clash && clash.id !== userId) return { ok: false as const, reason: "taken" as const };
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { email },
+    select: safeUserSelect,
+  });
+  return { ok: true as const, user: toSafeUser(user) };
+}
+
 export async function changePassword(oldPassword: string, nextPassword: string) {
   const me = await requireUser();
   const prisma = getPrisma();
