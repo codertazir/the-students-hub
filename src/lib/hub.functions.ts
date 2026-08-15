@@ -98,6 +98,13 @@ export const adminUpdateEmail = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => adminSetEmail(data.userId, data.email.toLowerCase()));
 
+export const adminUpdateRole = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ userId: z.string().min(1), role: z.enum(["user", "admin"]) }).parse(input),
+  )
+  .handler(async ({ data }) => adminSetRole(data.userId, data.role));
+
+
 
 export const getContent = createServerFn({ method: "GET" }).handler(async () => listContent());
 
