@@ -18,6 +18,7 @@ import {
   getAdminData,
   getContent,
   getSessionUser,
+  heartbeat,
   removeEvent,
   removeNote,
   saveProfile,
@@ -27,6 +28,7 @@ import {
   upsertEvent,
   upsertNote,
 } from "./hub.functions";
+
 
 type SafeUser = Awaited<ReturnType<typeof getSessionUser>>;
 
