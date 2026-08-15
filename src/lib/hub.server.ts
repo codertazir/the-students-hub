@@ -714,10 +714,15 @@ export async function writeActivity(input: {
   };
 }) {
   const me = await requireUser();
+  // Client callers send a verb phrase ("voted 'Option B' in …"); the server
+  // prefixes the real person so every line reads as a full sentence.
+  const action = /^[a-z]/.test(input.action)
+    ? `${displayName(me)} ${input.action}`
+    : input.action;
   await recordActivity({
     user: me,
     area: input.area,
-    action: input.action,
+    action,
     detail: input.detail ?? null,
     metadata: input.metadata ?? null,
     ...(input.meta ? { meta: input.meta } : {}),
