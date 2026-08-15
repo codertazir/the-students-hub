@@ -69,6 +69,7 @@ function toStoreUser(row: NonNullable<SafeUser>): User {
     passwordHash: "",
     salt: "",
     fullName: row.name,
+    ...(row.preferredName ? { preferredName: row.preferredName } : {}),
     dob: row.dateOfBirth ?? "",
     ...(row.phoneNumber ? { phone: row.phoneNumber } : {}),
     ...(row.profilePicture ? { avatar: row.profilePicture } : {}),
@@ -78,17 +79,19 @@ function toStoreUser(row: NonNullable<SafeUser>): User {
   };
 }
 
+/** Replaces the cached copy wholesale so the database always wins. */
 function mergeUser(row: NonNullable<SafeUser>) {
   const mapped = toStoreUser(row);
   setDB((d) => {
-    const existing = d.users.find((u) => u.id === mapped.id);
-    if (existing) Object.assign(existing, mapped);
+    const index = d.users.findIndex((u) => u.id === mapped.id);
+    if (index >= 0) d.users[index] = mapped;
     else d.users.push(mapped);
     d.sessionUserId = mapped.id;
     d.presence[mapped.id] = Date.now();
   });
   return mapped;
 }
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const db = useDB();
