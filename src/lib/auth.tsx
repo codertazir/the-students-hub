@@ -306,22 +306,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void signOutFn();
   }, []);
 
+  /**
+   * Writes the change to PostgreSQL and then re-seeds the local cache from the
+   * row the server returns, so what you see is always what is stored.
+   */
   const updateUser = useCallback(
-    (patch: Partial<User>) => {
-      if (!user) return;
+    async (patch: Partial<User>) => {
+      if (!user) return false;
       setDB((d) => {
         const target = d.users.find((u) => u.id === user.id);
         if (target) Object.assign(target, patch);
       });
-      void saveProfile({
-        data: {
-          ...(patch.fullName !== undefined ? { name: patch.fullName } : {}),
-          ...(patch.dob !== undefined ? { dateOfBirth: patch.dob } : {}),
-          ...(patch.phone !== undefined ? { phoneNumber: patch.phone ?? null } : {}),
-          ...(patch.avatar !== undefined ? { profilePicture: patch.avatar ?? null } : {}),
-        },
-      }).catch(() => undefined);
-      logActivity(user, "account", "Updated profile details");
+      try {
+        const row = await saveProfile({
+          data: {
+            ...(patch.fullName !== undefined ? { name: patch.fullName } : {}),
+            ...(patch.preferredName !== undefined ? { preferredName: patch.preferredName ?? null } : {}),
+            ...(patch.dob !== undefined ? { dateOfBirth: patch.dob } : {}),
+            ...(patch.phone !== undefined ? { phoneNumber: patch.phone ?? null } : {}),
+            ...(patch.avatar !== undefined ? { profilePicture: patch.avatar ?? null } : {}),
+          },
+        });
+        mergeUser(row);
+        return true;
+      } catch {
+        // Re-read the stored row so the UI never keeps an unsaved value.
+        const fresh = await getSessionUser().catch(() => null);
+        if (fresh) mergeUser(fresh);
+        return false;
+      }
     },
     [user],
   );
@@ -330,11 +343,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (oldPassword: string, next: string) => {
       if (!user) return false;
       const { ok } = await setPassword({ data: { oldPassword, nextPassword: next } });
-      if (ok) logActivity(user, "account", "Changed password");
       return ok;
     },
     [user],
   );
+
 
   const value = useMemo(
     () => ({ user, loading, signIn, signOut, updateUser, changePassword }),
