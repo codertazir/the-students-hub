@@ -16,6 +16,7 @@ export interface User {
   passwordHash: string;
   salt: string;
   fullName: string;
+  preferredName?: string;
   dob: string;
   phone?: string;
   avatar?: string;
@@ -23,6 +24,7 @@ export interface User {
   createdAt: number;
   onboarded: boolean;
 }
+
 
 export interface LoginRecord {
   id: ID;
