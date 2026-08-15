@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import {
   adminSetEmail,
+  adminSetRole,
+
   changePassword,
   currentUser,
   deleteEvent,
@@ -74,6 +76,7 @@ export const saveProfile = createServerFn({ method: "POST" })
     z
       .object({
         name: z.string().max(120).optional(),
+        preferredName: z.string().max(120).nullable().optional(),
         phoneNumber: z.string().max(40).nullable().optional(),
         profilePicture: z.string().max(500_000).nullable().optional(),
         dateOfBirth: z.string().max(40).nullable().optional(),
@@ -81,6 +84,7 @@ export const saveProfile = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => updateProfile(data, requestMeta()));
+
 
 export const setPassword = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
@@ -95,6 +99,13 @@ export const adminUpdateEmail = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => adminSetEmail(data.userId, data.email.toLowerCase()));
+
+export const adminUpdateRole = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ userId: z.string().min(1), role: z.enum(["user", "admin"]) }).parse(input),
+  )
+  .handler(async ({ data }) => adminSetRole(data.userId, data.role));
+
 
 
 export const getContent = createServerFn({ method: "GET" }).handler(async () => listContent());
@@ -159,44 +170,29 @@ export const logActivityRecord = createServerFn({ method: "POST" })
         area: z.string().max(40),
         action: z.string().max(300),
         detail: z.string().max(2000).nullable().optional(),
+        metadata: z.string().max(4000).nullable().optional(),
       })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    const userAgent = getRequestHeader("user-agent") ?? "unknown";
-    const ipAddress = getRequestIP({ xForwardedFor: true }) ?? "unavailable";
-    const os = /Windows/.test(userAgent)
-      ? "Windows"
-      : /Mac OS X/.test(userAgent)
-        ? "macOS"
-        : /Android/.test(userAgent)
-          ? "Android"
-          : /iPhone|iPad/.test(userAgent)
-            ? "iOS"
-            : /Linux/.test(userAgent)
-              ? "Linux"
-              : "Unknown OS";
-    const browser = /Edg\//.test(userAgent)
-      ? "Edge"
-      : /Chrome\//.test(userAgent)
-        ? "Chrome"
-        : /Firefox\//.test(userAgent)
-          ? "Firefox"
-          : /Safari\//.test(userAgent)
-            ? "Safari"
-            : "Unknown browser";
-    const device = /iPad|Tablet/.test(userAgent)
-      ? "Tablet"
-      : /Mobi|Android|iPhone/.test(userAgent)
-        ? "Phone"
-        : "Desktop";
+    let metadata: Record<string, unknown> | null = null;
+    if (data.metadata) {
+      try {
+        const parsed: unknown = JSON.parse(data.metadata);
+        metadata = parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+      } catch {
+        metadata = null;
+      }
+    }
     return writeActivity({
       area: data.area,
       action: data.action,
       detail: data.detail ?? null,
-      meta: { ipAddress, device, browser, os },
+      metadata,
+      meta: requestMeta(),
     });
   });
+
 
 export const getActivity = createServerFn({ method: "GET" }).handler(async () => listActivity());
 

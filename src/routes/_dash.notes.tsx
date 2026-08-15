@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { MoreVertical, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { track } from "@/lib/track";
 import { useAuth, useDB } from "@/lib/auth";
 import { previewAccent, setDB, uid } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,7 @@ function NotesPage() {
       d.notes = d.notes.filter((n) => n.id !== id);
     });
     setMenuFor(null);
+    track("notes", `deleted the meeting note "${title}"`, null, { noteId: id });
     toast.success("Note deleted");
   };
 

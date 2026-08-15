@@ -16,6 +16,7 @@ export interface User {
   passwordHash: string;
   salt: string;
   fullName: string;
+  preferredName?: string;
   dob: string;
   phone?: string;
   avatar?: string;
@@ -23,6 +24,7 @@ export interface User {
   createdAt: number;
   onboarded: boolean;
 }
+
 
 export interface LoginRecord {
   id: ID;
@@ -738,8 +740,20 @@ export function setSuggestionMark(suggestionId: ID, userId: ID, state: Suggestio
     const row = (d.suggestionState[suggestionId] ??= {});
     if (state) row[userId] = { state, ts: Date.now() };
     else delete row[userId];
+    const title = d.suggestions.find((s) => s.id === suggestionId)?.title ?? "a suggestion";
+    if (typeof window !== "undefined" && state) {
+      void import("./track").then(({ track }) =>
+        track(
+          "suggestions",
+          `marked the suggestion "${title}" as ${state === "completed" ? "done" : "ignored"}`,
+          null,
+          { suggestionId },
+        ),
+      );
+    }
   });
 }
+
 
 /** Admin breakdown for one suggestion card. */
 export function suggestionStats(db: DB, s: Suggestion) {

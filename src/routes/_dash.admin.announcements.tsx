@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Archive, ArchiveRestore, Bell, Megaphone, Pin, PinOff, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { track } from "@/lib/track";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,6 +68,7 @@ function AnnouncementsPage() {
           else delete a.cta;
         }
       });
+      track("announcements", `updated the announcement "${title.trim()}"`, null, { announcementId: editingId });
       toast.success("Announcement updated.");
       reset();
       return;
@@ -101,6 +103,11 @@ function AnnouncementsPage() {
         d.notifications = d.notifications.slice(0, 80);
       });
     }
+    track(
+      "announcements",
+      `sent the ${delivery === "both" ? "announcement and notification" : delivery} "${title.trim()}"`,
+      targets === "all" ? "To everyone" : `To ${targets.length} member(s)`,
+    );
     toast.success("Sent successfully.");
     reset();
   };

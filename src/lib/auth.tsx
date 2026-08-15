@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   getDB,
-  logActivity,
   previewAccent,
   setDB,
   subscribe,
@@ -13,11 +12,13 @@ import {
   type User,
 } from "./store";
 import { startSync } from "./sync";
+
 import {
   getActivity,
   getAdminData,
   getContent,
   getSessionUser,
+  heartbeat,
   removeEvent,
   removeNote,
   saveProfile,
@@ -27,6 +28,7 @@ import {
   upsertEvent,
   upsertNote,
 } from "./hub.functions";
+
 
 type SafeUser = Awaited<ReturnType<typeof getSessionUser>>;
 
@@ -55,9 +57,10 @@ interface AuthValue {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ created: boolean }>;
   signOut: () => void;
-  updateUser: (patch: Partial<User>) => void;
+  updateUser: (patch: Partial<User>) => Promise<boolean>;
   changePassword: (oldPassword: string, next: string) => Promise<boolean>;
 }
+
 
 const AuthContext = createContext<AuthValue | null>(null);
 
@@ -69,6 +72,7 @@ function toStoreUser(row: NonNullable<SafeUser>): User {
     passwordHash: "",
     salt: "",
     fullName: row.name,
+    ...(row.preferredName ? { preferredName: row.preferredName } : {}),
     dob: row.dateOfBirth ?? "",
     ...(row.phoneNumber ? { phone: row.phoneNumber } : {}),
     ...(row.profilePicture ? { avatar: row.profilePicture } : {}),
@@ -78,17 +82,19 @@ function toStoreUser(row: NonNullable<SafeUser>): User {
   };
 }
 
+/** Replaces the cached copy wholesale so the database always wins. */
 function mergeUser(row: NonNullable<SafeUser>) {
   const mapped = toStoreUser(row);
   setDB((d) => {
-    const existing = d.users.find((u) => u.id === mapped.id);
-    if (existing) Object.assign(existing, mapped);
+    const index = d.users.findIndex((u) => u.id === mapped.id);
+    if (index >= 0) d.users[index] = mapped;
     else d.users.push(mapped);
     d.sessionUserId = mapped.id;
     d.presence[mapped.id] = Date.now();
   });
   return mapped;
 }
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const db = useDB();
@@ -114,14 +120,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Presence heartbeat powers the admin "currently online" view.
+  // Presence heartbeat — written to the database so "online now" and
+  // "last active" survive refreshes and work across devices.
   useEffect(() => {
     if (!user) return;
-    const beat = () => setDB((d) => void (d.presence[user.id] = Date.now()));
+    const beat = () => {
+      setDB((d) => void (d.presence[user.id] = Date.now()));
+      void heartbeat().catch(() => undefined);
+    };
     beat();
     const t = setInterval(beat, 15_000);
     return () => clearInterval(t);
-  }, [user]);
+  }, [user?.id]);
+
 
   // Keep every signed-in device on the same shared document.
   useEffect(() => {
@@ -289,7 +300,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(async (email: string, password: string) => {
     const { user: row, created } = await signInFn({ data: { email, password } });
     const mapped = mergeUser(row);
-    logActivity(mapped, "auth", created ? "Created account and signed in" : "Signed in");
+    // The sign-in itself is logged server-side (login log + activity log).
     void hydrate(mapped.isAdmin);
     return { created };
   }, [hydrate]);
@@ -303,22 +314,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void signOutFn();
   }, []);
 
+  /**
+   * Writes the change to PostgreSQL and then re-seeds the local cache from the
+   * row the server returns, so what you see is always what is stored.
+   */
   const updateUser = useCallback(
-    (patch: Partial<User>) => {
-      if (!user) return;
+    async (patch: Partial<User>) => {
+      if (!user) return false;
       setDB((d) => {
         const target = d.users.find((u) => u.id === user.id);
         if (target) Object.assign(target, patch);
       });
-      void saveProfile({
-        data: {
-          ...(patch.fullName !== undefined ? { name: patch.fullName } : {}),
-          ...(patch.dob !== undefined ? { dateOfBirth: patch.dob } : {}),
-          ...(patch.phone !== undefined ? { phoneNumber: patch.phone ?? null } : {}),
-          ...(patch.avatar !== undefined ? { profilePicture: patch.avatar ?? null } : {}),
-        },
-      }).catch(() => undefined);
-      logActivity(user, "account", "Updated profile details");
+      try {
+        const row = await saveProfile({
+          data: {
+            ...(patch.fullName !== undefined ? { name: patch.fullName } : {}),
+            ...(patch.preferredName !== undefined ? { preferredName: patch.preferredName ?? null } : {}),
+            ...(patch.dob !== undefined ? { dateOfBirth: patch.dob } : {}),
+            ...(patch.phone !== undefined ? { phoneNumber: patch.phone ?? null } : {}),
+            ...(patch.avatar !== undefined ? { profilePicture: patch.avatar ?? null } : {}),
+          },
+        });
+        mergeUser(row);
+        return true;
+      } catch {
+        // Re-read the stored row so the UI never keeps an unsaved value.
+        const fresh = await getSessionUser().catch(() => null);
+        if (fresh) mergeUser(fresh);
+        return false;
+      }
     },
     [user],
   );
@@ -327,11 +351,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (oldPassword: string, next: string) => {
       if (!user) return false;
       const { ok } = await setPassword({ data: { oldPassword, nextPassword: next } });
-      if (ok) logActivity(user, "account", "Changed password");
       return ok;
     },
     [user],
   );
+
 
   const value = useMemo(
     () => ({ user, loading, signIn, signOut, updateUser, changePassword }),

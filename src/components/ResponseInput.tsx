@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { useDB } from "@/lib/auth";
 import { setDB, uid, type NoteBlock, type NoteSubmission } from "@/lib/store";
+import { track } from "@/lib/track";
 import { cn } from "@/lib/utils";
 
 const TYPING_WINDOW = 4000;
@@ -46,7 +47,7 @@ export function ResponseInput({
         )}
       </p>
       {mode === "submit" ? (
-        <SubmitResponse block={block} userId={userId} userName={userName} onPatch={onPatch} />
+        <SubmitResponse block={block} scope={scope} userId={userId} userName={userName} onPatch={onPatch} />
       ) : (
         <LiveResponse block={block} scope={scope} userId={userId} userName={userName} onPatch={onPatch} />
       )}
@@ -70,6 +71,7 @@ function LiveResponse({
   const db = useDB();
   const [anon, setAnon] = useState(false);
   const clearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loggedRef = useRef(false);
   const prefix = `${scope}:${block.id}:`;
   const typingKey = `${prefix}${userId}`;
 
@@ -94,6 +96,15 @@ function LiveResponse({
 
   const handleChange = (value: string) => {
     onPatch({ shared: value, lastEditor: label, lastEditedAt: Date.now() });
+    if (!loggedRef.current) {
+      loggedRef.current = true;
+      track(
+        scope.startsWith("event") ? "events" : "notes",
+        `edited the live response to "${block.content || "a question"}"`,
+        anon ? "Posted anonymously" : null,
+        { scope, blockId: block.id, mode: "live" },
+      );
+    }
     setDB((d) => {
       d.typing[typingKey] = { name: label, ts: Date.now() };
     });
@@ -132,11 +143,13 @@ function LiveResponse({
 
 function SubmitResponse({
   block,
+  scope,
   userId,
   userName,
   onPatch,
 }: {
   block: NoteBlock;
+  scope: string;
   userId: string;
   userName: string;
   onPatch: (patch: Partial<NoteBlock>) => void;
@@ -164,6 +177,12 @@ function SubmitResponse({
     };
     const next = mine ? submissions.map((s) => (s.userId === userId ? entry : s)) : [...submissions, entry];
     onPatch({ submissions: next });
+    track(
+      scope.startsWith("event") ? "events" : "notes",
+      `${mine ? "updated" : "submitted"} an answer to "${block.content || "a question"}"`,
+      anon ? "Submitted anonymously" : `As ${userName}`,
+      { scope, blockId: block.id, mode: "submit", anonymous: anon },
+    );
     setEditing(false);
     toast.success(mine ? "Answer updated." : "Answer submitted.");
   };
