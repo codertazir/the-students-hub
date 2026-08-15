@@ -2,6 +2,7 @@ import { useState } from "react";
 import { CheckCircle2, ChevronDown, Circle, Plus } from "lucide-react";
 import { notify, setDB, uid, userLabel, visibleTasks, type Task } from "@/lib/store";
 import { useAuth, useDB } from "@/lib/auth";
+import { track } from "@/lib/track";
 import { cn } from "@/lib/utils";
 
 /** Shared tasks list used by the home card and the dedicated Tasks page. */
@@ -30,6 +31,12 @@ export function TasksPanel({ limit = 3, showComposer = true }: { limit?: number;
       t.done = !t.done;
       if (t.done) t.completedAt = Date.now();
       else delete t.completedAt;
+      track(
+        "tasks",
+        `marked the task "${t.title}" as ${t.done ? "done" : "not done"}`,
+        t.due ? `Due ${t.due}` : null,
+        { taskId: t.id },
+      );
     });
     // Notify whoever assigned the task when someone else completes it.
     if (!task.done && task.createdBy !== "system" && task.createdBy !== me.id) {
@@ -55,6 +62,11 @@ export function TasksPanel({ limit = 3, showComposer = true }: { limit?: number;
         createdAt: Date.now(),
       });
     });
+    track(
+      "tasks",
+      `created the task "${title.trim()}"`,
+      assignee === "me" ? "Assigned to themselves" : assignee === "all" ? "Assigned to everyone" : "Assigned to a member",
+    );
     if (assignee !== "me" && assignee !== "all") {
       notify({
         title: "New task assigned to you",

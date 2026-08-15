@@ -18,7 +18,8 @@ import {
 import { toast } from "sonner";
 import { NoteBlocksEditor } from "@/components/NoteBlocksEditor";
 import { useAuth, useDB } from "@/lib/auth";
-import { logActivity, setDB, uid, type EventCard, type EventCardType, type NoteBlock, type NoteBlockKind } from "@/lib/store";
+import { track } from "@/lib/track";
+import { setDB, uid, type EventCard, type EventCardType, type NoteBlock, type NoteBlockKind } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/students-hub-logo.png.asset.json";
 
@@ -422,6 +423,15 @@ function PollCard({ event, card }: { event: ReturnType<typeof useDB>["events"][n
       const already = c.poll.options.find((o) => o.id === optId)?.votes.includes(user.id);
       c.poll.options.forEach((o) => (o.votes = o.votes.filter((v) => v !== user.id)));
       if (!already) c.poll.options.find((o) => o.id === optId)?.votes.push(user.id);
+      const label = c.poll.options.find((o) => o.id === optId)?.label ?? "an option";
+      track(
+        "polls",
+        already
+          ? `removed their vote for "${label}" in "${c.poll.question}"`
+          : `voted for "${label}" in "${c.poll.question}"`,
+        `Event: ${event.title}`,
+        { eventId: event.id, cardId: card.id, optionId: optId },
+      );
     });
   };
 
@@ -732,7 +742,10 @@ function FolderCard({ event, card }: { event: ReturnType<typeof useDB>["events"]
                   const c = d.events.find((x) => x.id === event.id)?.cards.find((x) => x.id === card.id);
                   c?.folder?.files.push({ id: uid(), name: file.name, by: user.fullName || user.email, ts: Date.now() });
                 });
-                logActivity(user, "events", `Uploaded ${file.name} to ${card.title}`);
+                track("files", `uploaded "${file.name}" to ${card.title}`, `Event: ${event.title}`, {
+                  eventId: event.id,
+                  cardId: card.id,
+                });
                 toast.success("File added.");
                 e.target.value = "";
               }}
@@ -817,7 +830,10 @@ function CommentsBlock({ event }: { event: ReturnType<typeof useDB>["events"][nu
                   ts: Date.now(),
                 });
             });
-            logActivity(user, "events", `Posted a ${kind} on ${event.title}`);
+            track("events", `posted a ${kind} on "${event.title}"`, text.trim().slice(0, 200), {
+              eventId: event.id,
+              kind,
+            });
             setText("");
           }}
           className="rounded-full bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition-all hover:-translate-y-0.5 disabled:opacity-40"
