@@ -392,6 +392,31 @@ export async function adminSetEmail(userId: string, email: string) {
   return { ok: true as const, user: safe };
 }
 
+/** Admins promote/demote members; the role lives in the database, never the client. */
+export async function adminSetRole(userId: string, role: "user" | "admin") {
+  const admin = await requireAdmin();
+  const prisma = getPrisma();
+  if (userId === admin.id && role === "user")
+    return { ok: false as const, reason: "self" as const };
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { role },
+    select: safeUserSelect,
+  });
+  const safe = toSafeUser(user);
+  await recordActivity({
+    user: admin,
+    area: "admin",
+    action:
+      role === "admin"
+        ? `${displayName(admin)} promoted ${displayName(safe)} to admin`
+        : `${displayName(admin)} demoted ${displayName(safe)} to member`,
+    detail: `Member: ${safe.email}`,
+    metadata: { targetUserId: userId, role },
+  });
+  return { ok: true as const, user: safe };
+}
+
 export async function changePassword(
   oldPassword: string,
   nextPassword: string,
