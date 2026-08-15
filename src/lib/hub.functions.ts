@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import {
   adminSetEmail,
+  adminSetRole,
+
   changePassword,
   currentUser,
   deleteEvent,
