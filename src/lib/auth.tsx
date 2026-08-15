@@ -55,9 +55,10 @@ interface AuthValue {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ created: boolean }>;
   signOut: () => void;
-  updateUser: (patch: Partial<User>) => void;
+  updateUser: (patch: Partial<User>) => Promise<boolean>;
   changePassword: (oldPassword: string, next: string) => Promise<boolean>;
 }
+
 
 const AuthContext = createContext<AuthValue | null>(null);
 
@@ -117,14 +118,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Presence heartbeat powers the admin "currently online" view.
+  // Presence heartbeat — written to the database so "online now" and
+  // "last active" survive refreshes and work across devices.
   useEffect(() => {
     if (!user) return;
-    const beat = () => setDB((d) => void (d.presence[user.id] = Date.now()));
+    const beat = () => {
+      setDB((d) => void (d.presence[user.id] = Date.now()));
+      void heartbeat().catch(() => undefined);
+    };
     beat();
     const t = setInterval(beat, 15_000);
     return () => clearInterval(t);
-  }, [user]);
+  }, [user?.id]);
+
 
   // Keep every signed-in device on the same shared document.
   useEffect(() => {
