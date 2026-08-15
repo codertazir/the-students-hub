@@ -47,7 +47,7 @@ export function ResponseInput({
         )}
       </p>
       {mode === "submit" ? (
-        <SubmitResponse block={block} userId={userId} userName={userName} onPatch={onPatch} />
+        <SubmitResponse block={block} scope={scope} userId={userId} userName={userName} onPatch={onPatch} />
       ) : (
         <LiveResponse block={block} scope={scope} userId={userId} userName={userName} onPatch={onPatch} />
       )}
