@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ChevronDown, MoreVertical, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { track } from "@/lib/track";
 import { useAuth, useDB } from "@/lib/auth";
 import { previewAccent, setDB, uid } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -66,13 +67,22 @@ function EventsPage() {
       d.events = d.events.filter((e) => e.id !== id);
     });
     setMenuFor(null);
+    track("events", `deleted the event "${title}"`, null, { eventId: id });
     toast.success("Event deleted");
   };
 
   const toggleCompleted = (id: string) => {
     setDB((d) => {
       const ev = d.events.find((e) => e.id === id);
-      if (ev) ev.completed = !ev.completed;
+      if (ev) {
+        ev.completed = !ev.completed;
+        track(
+          "events",
+          `marked the event "${ev.title}" as ${ev.completed ? "completed" : "upcoming"}`,
+          null,
+          { eventId: id },
+        );
+      }
     });
     setMenuFor(null);
   };

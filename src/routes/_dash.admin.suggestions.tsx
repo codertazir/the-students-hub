@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Lightbulb, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { track } from "@/lib/track";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -65,11 +66,17 @@ function SuggestionsPage() {
           else delete s.cta;
         }
       });
+      track("suggestions", `updated the suggestion "${title.trim()}"`, null, { suggestionId: editingId });
       toast.success("Suggestion updated.");
     } else {
       setDB((d) => {
         d.suggestions.unshift({ id: uid(), title: title.trim(), body: body.trim(), targets, ts: Date.now(), ...(cta ? { cta } : {}) });
       });
+      track(
+        "suggestions",
+        `created the suggestion "${title.trim()}"`,
+        targets === "all" ? "For everyone" : `For ${targets.length} member(s)`,
+      );
       toast.success("Suggestion created.");
     }
     reset();
