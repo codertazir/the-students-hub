@@ -678,22 +678,24 @@ export async function writeActivity(input: {
   area: string;
   action: string;
   detail?: string | null;
-  meta?: { ipAddress?: string; device?: string; browser?: string; os?: string };
+  metadata?: Record<string, unknown> | null;
+  meta?: {
+    ipAddress?: string;
+    device?: string;
+    deviceType?: string;
+    userAgent?: string;
+    browser?: string;
+    os?: string;
+  };
 }) {
   const me = await requireUser();
-  const prisma = getPrisma();
-  await prisma.activityLog.create({
-    data: {
-      userId: me.id,
-      email: me.email,
-      area: input.area,
-      action: input.action,
-      detail: input.detail ?? null,
-      ipAddress: input.meta?.ipAddress ?? null,
-      device: input.meta?.device ?? null,
-      browser: input.meta?.browser ?? null,
-      os: input.meta?.os ?? null,
-    },
+  await recordActivity({
+    user: me,
+    area: input.area,
+    action: input.action,
+    detail: input.detail ?? null,
+    metadata: input.metadata ?? null,
+    ...(input.meta ? { meta: input.meta } : {}),
   });
   return { ok: true };
 }
@@ -710,13 +712,18 @@ export async function listActivity(limit = 300) {
     id: r.id,
     userId: r.userId,
     email: r.email,
+    name: r.name,
     area: r.area,
     action: r.action,
     detail: r.detail,
+    metadata: r.metadata == null ? null : JSON.stringify(r.metadata),
     ipAddress: r.ipAddress,
     device: r.device,
+    deviceType: r.deviceType,
+    userAgent: r.userAgent,
     browser: r.browser,
     os: r.os,
     ts: r.timestamp.toISOString(),
   }));
 }
+
