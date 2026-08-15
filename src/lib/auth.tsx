@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   getDB,
-  logActivity,
   previewAccent,
   setDB,
   subscribe,
@@ -13,6 +12,7 @@ import {
   type User,
 } from "./store";
 import { startSync } from "./sync";
+
 import {
   getActivity,
   getAdminData,
@@ -300,7 +300,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(async (email: string, password: string) => {
     const { user: row, created } = await signInFn({ data: { email, password } });
     const mapped = mergeUser(row);
-    logActivity(mapped, "auth", created ? "Created account and signed in" : "Signed in");
+    // The sign-in itself is logged server-side (login log + activity log).
     void hydrate(mapped.isAdmin);
     return { created };
   }, [hydrate]);
