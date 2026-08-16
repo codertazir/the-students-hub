@@ -7,7 +7,8 @@
  */
 
 import { useEffect, useState } from "react";
-import { getMonitoring } from "./hub.functions";
+import { getMonitoring, getSessionUser } from "./hub.functions";
+import { setDB } from "./store";
 
 export type MonitoringData = Awaited<ReturnType<typeof getMonitoring>>;
 export type MonitoredUser = MonitoringData["users"][number];
@@ -48,7 +49,24 @@ export function useMonitoring(enabled: boolean) {
           setError(null);
         }
       } catch (e) {
-        if (alive) setError(e instanceof Error ? e.message : "Could not load monitoring data.");
+        const message = e instanceof Error ? e.message : "Could not load monitoring data.";
+        if (!alive) return;
+        // A stale browser session (expired or invalidated cookie) makes the
+        // server reject the request even though the cached profile still looks
+        // signed in. Re-check the real session and send the admin back to the
+        // login screen instead of showing a dead-end error.
+        if (/not signed in/i.test(message) || /admins only/i.test(message)) {
+          const fresh = await getSessionUser().catch(() => null);
+          if (!alive) return;
+          if (!fresh) {
+            setDB((d) => void (d.sessionUserId = null));
+            setError("Your session expired. Please sign in again.");
+            return;
+          }
+          setError("This page is only available to admins.");
+          return;
+        }
+        setError(message);
       }
     };
 
