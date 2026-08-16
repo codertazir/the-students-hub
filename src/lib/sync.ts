@@ -78,7 +78,9 @@ export function startSync() {
   };
 
   const pull = async () => {
-    const { version: v, data } = await pullShared();
+    const res = await pullShared();
+    if (!res) return; // signed out — nothing to sync
+    const { version: v, data } = res;
     version = v;
     const doc = data as Doc;
     const empty = Object.keys(doc).length === 0;
@@ -95,7 +97,7 @@ export function startSync() {
   const push = async (patch: Doc) => {
     if (Object.keys(patch).length === 0) return;
     const res = await pushShared({ data: { patch: patch as Record<string, unknown> } });
-    version = res.version;
+    if (res) version = res.version;
   };
 
   const flush = () => {
@@ -121,7 +123,7 @@ export function startSync() {
     if (stopped || document.hidden) return;
     void pullSharedVersion()
       .then(async (v) => {
-        if (v !== version) await pull();
+        if (v !== null && v !== version) await pull();
       })
       .catch(() => undefined);
   }, POLL_MS);
