@@ -664,8 +664,10 @@ type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string
 type Json = { [key: string]: JsonValue };
 
 /** Reads the single shared document every device syncs against. */
-export async function readShared(): Promise<{ version: number; data: Json }> {
-  await requireUser();
+export async function readShared(): Promise<{ version: number; data: Json } | null> {
+  // Signed-out polls are normal (login page, expired session) — return null
+  // instead of throwing so the client sync loop can simply skip the tick.
+  if (!(await currentUser())) return null;
   const prisma = getPrisma();
   const row = await prisma.sharedState.findUnique({ where: { id: "hub" } });
   if (!row) return { version: 0, data: {} };
@@ -673,8 +675,8 @@ export async function readShared(): Promise<{ version: number; data: Json }> {
 }
 
 /** Cheap poll: just the version stamp, so clients only refetch on change. */
-export async function readSharedVersion(): Promise<number> {
-  await requireUser();
+export async function readSharedVersion(): Promise<number | null> {
+  if (!(await currentUser())) return null;
   const prisma = getPrisma();
   const row = await prisma.sharedState.findUnique({
     where: { id: "hub" },
@@ -684,8 +686,8 @@ export async function readSharedVersion(): Promise<number> {
 }
 
 /** Shallow top-level merge so two devices editing different areas don't clash. */
-export async function writeShared(patch: Json): Promise<{ version: number; data: Json }> {
-  await requireUser();
+export async function writeShared(patch: Json): Promise<{ version: number; data: Json } | null> {
+  if (!(await currentUser())) return null;
   const prisma = getPrisma();
   const existing = await prisma.sharedState.findUnique({ where: { id: "hub" } });
   const merged = { ...((existing?.data as Json) ?? {}), ...patch };
