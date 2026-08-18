@@ -8,6 +8,7 @@
  */
 
 import {
+  getDB,
   setDB,
   uid,
   type DB,
@@ -190,8 +191,8 @@ export function setTaskStatus(id: ID, status: PlanTask["status"], actor: PlanAct
 }
 
 export function toggleTaskDone(id: ID, actor: PlanActor) {
-  const db = currentTask(id);
-  setTaskStatus(id, db?.done ? "todo" : "done", actor);
+  const task = getDB().planTasks.find((t) => t.id === id);
+  setTaskStatus(id, task?.done ? "todo" : "done", actor);
 }
 
 export function deleteTask(id: ID) {
@@ -204,16 +205,6 @@ export function deleteTask(id: ID) {
 
 export function reassignTask(id: ID, assignees: "all" | ID[], actor: PlanActor) {
   updateTask(id, { assignees }, actor, "reassigned the task");
-}
-
-let peek: (() => DB) | null = null;
-function currentTask(id: ID): PlanTask | undefined {
-  if (!peek) return undefined;
-  return peek().planTasks.find((t) => t.id === id);
-}
-/** Wired once at module init to avoid an import cycle in `toggleTaskDone`. */
-export function bindStoreReader(reader: () => DB) {
-  peek = reader;
 }
 
 /** Keeps a project's progress in step with its tasks unless overridden. */
