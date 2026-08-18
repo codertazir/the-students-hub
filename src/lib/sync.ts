@@ -10,7 +10,17 @@
  */
 
 import { pullShared, pullSharedVersion, pushShared } from "./hub.functions";
-import { getDB, setDB, subscribe, SHARED_KEYS, mergeHomeCards, type DB, type SharedKey } from "./store";
+import {
+  getDB,
+  setDB,
+  subscribe,
+  SHARED_KEYS,
+  mergeHomeCards,
+  mergeMonths,
+  mergePlanColumns,
+  type DB,
+  type SharedKey,
+} from "./store";
 
 type Doc = Partial<Record<SharedKey, unknown>>;
 
@@ -67,6 +77,10 @@ export function startSync() {
           d.typing = mergeTyping(d.typing, value as Record<string, { name: string; ts: number }>);
         } else if (key === "homeCards") {
           d.homeCards = mergeHomeCards(value as DB["homeCards"]);
+        } else if (key === "planMonths") {
+          d.planMonths = mergeMonths(value as DB["planMonths"]);
+        } else if (key === "planColumns") {
+          d.planColumns = mergePlanColumns(value as DB["planColumns"]);
         } else {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (d as any)[key] = value;

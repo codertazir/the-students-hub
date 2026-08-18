@@ -276,6 +276,146 @@ export const DEFAULT_HOME_CARDS: HomeCard[] = [
   { id: "funds", visible: true },
 ];
 
+/* ---------------- master plan ---------------- */
+
+export const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+
+/** School year default: August first. Admin can reorder freely. */
+export const DEFAULT_MONTH_ORDER = [7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5, 6];
+
+export type PlanColumnId =
+  | "name"
+  | "description"
+  | "tasks"
+  | "progress"
+  | "status"
+  | "event"
+  | "start"
+  | "end"
+  | "priority"
+  | "owner";
+
+export interface PlanColumn {
+  id: PlanColumnId;
+  visible: boolean;
+}
+
+export const PLAN_COLUMN_LABELS: Record<PlanColumnId, string> = {
+  name: "Project / Event",
+  description: "Description",
+  tasks: "Tasks",
+  progress: "Progress",
+  status: "Status",
+  event: "Event page",
+  start: "Start date",
+  end: "End date",
+  priority: "Priority",
+  owner: "Owner",
+};
+
+export const DEFAULT_PLAN_COLUMNS: PlanColumn[] = [
+  { id: "name", visible: true },
+  { id: "description", visible: true },
+  { id: "tasks", visible: true },
+  { id: "progress", visible: true },
+  { id: "status", visible: true },
+  { id: "event", visible: true },
+  { id: "start", visible: true },
+  { id: "end", visible: true },
+  { id: "priority", visible: true },
+  { id: "owner", visible: false },
+];
+
+export type PlanStatus = "planned" | "in_progress" | "blocked" | "done" | "cancelled";
+export const PLAN_STATUSES: PlanStatus[] = ["planned", "in_progress", "blocked", "done", "cancelled"];
+export const PLAN_STATUS_LABELS: Record<PlanStatus, string> = {
+  planned: "Planned",
+  in_progress: "In progress",
+  blocked: "Blocked",
+  done: "Done",
+  cancelled: "Cancelled",
+};
+
+export type PlanPriority = "low" | "medium" | "high" | "urgent";
+export const PLAN_PRIORITIES: PlanPriority[] = ["low", "medium", "high", "urgent"];
+export const PLAN_PRIORITY_LABELS: Record<PlanPriority, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  urgent: "Urgent",
+};
+
+/** One row of a month table. Extra fields can be added without migrations. */
+export interface PlanProject {
+  id: ID;
+  /** 0 = January … 11 = December. */
+  month: number;
+  order: number;
+  name: string;
+  description: string;
+  status: PlanStatus;
+  priority: PlanPriority;
+  /** 0–100; recomputed from tasks unless the admin overrides it. */
+  progress: number;
+  autoProgress: boolean;
+  /** Linked Students Hub event id (see DB.events). */
+  eventId?: ID | null;
+  start: string;
+  end: string;
+  owner?: string;
+  createdBy: ID | "system";
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type PlanTaskStatus = "todo" | "in_progress" | "blocked" | "done";
+export const PLAN_TASK_STATUSES: PlanTaskStatus[] = ["todo", "in_progress", "blocked", "done"];
+export const PLAN_TASK_STATUS_LABELS: Record<PlanTaskStatus, string> = {
+  todo: "To do",
+  in_progress: "In progress",
+  blocked: "Blocked",
+  done: "Done",
+};
+
+export interface PlanTaskEvent {
+  ts: number;
+  by: ID | "system";
+  byName: string;
+  action: string;
+}
+
+export interface PlanTask {
+  id: ID;
+  projectId: ID;
+  title: string;
+  description: string;
+  /** "all" = everyone in the club, otherwise an explicit list of user ids. */
+  assignees: "all" | ID[];
+  due: string;
+  priority: PlanPriority;
+  status: PlanTaskStatus;
+  done: boolean;
+  createdBy: ID | "system";
+  createdAt: number;
+  updatedAt: number;
+  completedAt?: number;
+  completedBy?: ID;
+  history: PlanTaskEvent[];
+}
+
 /** Top-level keys that live in the shared (cross-device) document. */
 export const SHARED_KEYS = [
   "announcements",
@@ -288,6 +428,10 @@ export const SHARED_KEYS = [
   "events",
   "meeting",
   "funds",
+  "planMonths",
+  "planColumns",
+  "planProjects",
+  "planTasks",
   "presence",
   "typing",
 ] as const;
@@ -307,10 +451,16 @@ export interface DB {
   events: ClubEvent[];
   meeting: Meeting;
   funds: Funds;
+  /** Admin-controlled month order for the Master Plan page. */
+  planMonths: number[];
+  planColumns: PlanColumn[];
+  planProjects: PlanProject[];
+  planTasks: PlanTask[];
   presence: Record<ID, number>;
   typing: Record<string, { name: string; ts: number }>;
   sessionUserId: ID | null;
 }
+
 
 const KEY = "tsh.db.v2";
 export const ONLINE_WINDOW_MS = 45_000;
@@ -575,6 +725,10 @@ export function seed(): DB {
       note: "Updated after the showcase sign-off.",
       updatedAt: Date.now(),
     },
+    planMonths: [...DEFAULT_MONTH_ORDER],
+    planColumns: DEFAULT_PLAN_COLUMNS.map((c) => ({ ...c })),
+    planProjects: [],
+    planTasks: [],
     presence: {},
     typing: {},
     sessionUserId: null,
@@ -591,6 +745,74 @@ export function mergeHomeCards(saved?: HomeCard[]): HomeCard[] {
   const seen = new Set(kept.map((c) => c.id));
   for (const c of DEFAULT_HOME_CARDS) if (!seen.has(c.id)) kept.push({ ...c });
   return kept;
+}
+
+/** Keeps the admin's month order, drops duplicates/junk, appends missing months. */
+export function mergeMonths(saved?: number[]): number[] {
+  const kept: number[] = [];
+  for (const m of saved ?? []) {
+    const n = Number(m);
+    if (Number.isInteger(n) && n >= 0 && n <= 11 && !kept.includes(n)) kept.push(n);
+  }
+  for (const m of DEFAULT_MONTH_ORDER) if (!kept.includes(m)) kept.push(m);
+  return kept;
+}
+
+/** Keeps the admin's column order/visibility, appends columns added later. */
+export function mergePlanColumns(saved?: PlanColumn[]): PlanColumn[] {
+  const known = new Set(DEFAULT_PLAN_COLUMNS.map((c) => c.id));
+  const kept = (saved ?? [])
+    .filter((c) => c && known.has(c.id))
+    .map((c) => ({ id: c.id, visible: c.visible !== false }));
+  const seen = new Set(kept.map((c) => c.id));
+  for (const c of DEFAULT_PLAN_COLUMNS) if (!seen.has(c.id)) kept.push({ ...c });
+  return kept;
+}
+
+function normalizeProject(p: Partial<PlanProject>, index: number): PlanProject {
+  return {
+    id: p.id ?? uid(),
+    month: Number.isInteger(p.month) && p.month! >= 0 && p.month! <= 11 ? p.month! : 0,
+    order: typeof p.order === "number" ? p.order : index,
+    name: p.name ?? "Untitled project",
+    description: p.description ?? "",
+    status: PLAN_STATUSES.includes(p.status as PlanStatus) ? (p.status as PlanStatus) : "planned",
+    priority: PLAN_PRIORITIES.includes(p.priority as PlanPriority) ? (p.priority as PlanPriority) : "medium",
+    progress: typeof p.progress === "number" ? Math.max(0, Math.min(100, Math.round(p.progress))) : 0,
+    autoProgress: p.autoProgress !== false,
+    eventId: p.eventId ?? null,
+    start: p.start ?? "",
+    end: p.end ?? "",
+    owner: p.owner ?? "",
+    createdBy: p.createdBy ?? "system",
+    createdAt: p.createdAt ?? Date.now(),
+    updatedAt: p.updatedAt ?? p.createdAt ?? Date.now(),
+  };
+}
+
+function normalizeTask(t: Partial<PlanTask>): PlanTask {
+  const done = t.done ?? t.status === "done";
+  return {
+    id: t.id ?? uid(),
+    projectId: t.projectId ?? "",
+    title: t.title ?? "Untitled task",
+    description: t.description ?? "",
+    assignees: t.assignees === "all" ? "all" : Array.isArray(t.assignees) ? t.assignees : [],
+    due: t.due ?? "",
+    priority: PLAN_PRIORITIES.includes(t.priority as PlanPriority) ? (t.priority as PlanPriority) : "medium",
+    status: PLAN_TASK_STATUSES.includes(t.status as PlanTaskStatus)
+      ? (t.status as PlanTaskStatus)
+      : done
+        ? "done"
+        : "todo",
+    done,
+    createdBy: t.createdBy ?? "system",
+    createdAt: t.createdAt ?? Date.now(),
+    updatedAt: t.updatedAt ?? t.createdAt ?? Date.now(),
+    ...(t.completedAt ? { completedAt: t.completedAt } : {}),
+    ...(t.completedBy ? { completedBy: t.completedBy } : {}),
+    history: Array.isArray(t.history) ? t.history : [],
+  };
 }
 
 /** Fills in anything a stored (older) snapshot is missing. */
@@ -610,6 +832,10 @@ function normalize(db: Partial<DB>): DB {
   merged.events ??= base.events;
   merged.meeting = { ...base.meeting, ...(db.meeting ?? {}) };
   merged.funds = { ...base.funds, ...(db.funds ?? {}) };
+  merged.planMonths = mergeMonths(db.planMonths);
+  merged.planColumns = mergePlanColumns(db.planColumns);
+  merged.planProjects = (db.planProjects ?? []).map((p, i) => normalizeProject(p, i));
+  merged.planTasks = (db.planTasks ?? []).map((t) => normalizeTask(t));
   merged.presence ??= {};
   merged.typing ??= {};
   merged.notifications = merged.notifications.map((n) => ({ ...n, targets: n.targets ?? "all" }));
@@ -679,6 +905,10 @@ export function ssrDB(): DB {
     notifications: [],
     notes: [],
     events: [],
+    planMonths: [...DEFAULT_MONTH_ORDER],
+    planColumns: DEFAULT_PLAN_COLUMNS.map((c) => ({ ...c })),
+    planProjects: [],
+    planTasks: [],
     presence: {},
     typing: {},
     sessionUserId: null,
