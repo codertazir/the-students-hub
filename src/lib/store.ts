@@ -725,6 +725,10 @@ export function seed(): DB {
       note: "Updated after the showcase sign-off.",
       updatedAt: Date.now(),
     },
+    planMonths: [...DEFAULT_MONTH_ORDER],
+    planColumns: DEFAULT_PLAN_COLUMNS.map((c) => ({ ...c })),
+    planProjects: [],
+    planTasks: [],
     presence: {},
     typing: {},
     sessionUserId: null,
@@ -760,6 +764,10 @@ function normalize(db: Partial<DB>): DB {
   merged.events ??= base.events;
   merged.meeting = { ...base.meeting, ...(db.meeting ?? {}) };
   merged.funds = { ...base.funds, ...(db.funds ?? {}) };
+  merged.planMonths = mergeMonths(db.planMonths);
+  merged.planColumns = mergePlanColumns(db.planColumns);
+  merged.planProjects = (db.planProjects ?? []).map((p, i) => normalizeProject(p, i));
+  merged.planTasks = (db.planTasks ?? []).map((t) => normalizeTask(t));
   merged.presence ??= {};
   merged.typing ??= {};
   merged.notifications = merged.notifications.map((n) => ({ ...n, targets: n.targets ?? "all" }));
@@ -829,6 +837,10 @@ export function ssrDB(): DB {
     notifications: [],
     notes: [],
     events: [],
+    planMonths: [...DEFAULT_MONTH_ORDER],
+    planColumns: DEFAULT_PLAN_COLUMNS.map((c) => ({ ...c })),
+    planProjects: [],
+    planTasks: [],
     presence: {},
     typing: {},
     sessionUserId: null,
