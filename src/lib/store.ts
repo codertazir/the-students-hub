@@ -747,6 +747,74 @@ export function mergeHomeCards(saved?: HomeCard[]): HomeCard[] {
   return kept;
 }
 
+/** Keeps the admin's month order, drops duplicates/junk, appends missing months. */
+export function mergeMonths(saved?: number[]): number[] {
+  const kept: number[] = [];
+  for (const m of saved ?? []) {
+    const n = Number(m);
+    if (Number.isInteger(n) && n >= 0 && n <= 11 && !kept.includes(n)) kept.push(n);
+  }
+  for (const m of DEFAULT_MONTH_ORDER) if (!kept.includes(m)) kept.push(m);
+  return kept;
+}
+
+/** Keeps the admin's column order/visibility, appends columns added later. */
+export function mergePlanColumns(saved?: PlanColumn[]): PlanColumn[] {
+  const known = new Set(DEFAULT_PLAN_COLUMNS.map((c) => c.id));
+  const kept = (saved ?? [])
+    .filter((c) => c && known.has(c.id))
+    .map((c) => ({ id: c.id, visible: c.visible !== false }));
+  const seen = new Set(kept.map((c) => c.id));
+  for (const c of DEFAULT_PLAN_COLUMNS) if (!seen.has(c.id)) kept.push({ ...c });
+  return kept;
+}
+
+function normalizeProject(p: Partial<PlanProject>, index: number): PlanProject {
+  return {
+    id: p.id ?? uid(),
+    month: Number.isInteger(p.month) && p.month! >= 0 && p.month! <= 11 ? p.month! : 0,
+    order: typeof p.order === "number" ? p.order : index,
+    name: p.name ?? "Untitled project",
+    description: p.description ?? "",
+    status: PLAN_STATUSES.includes(p.status as PlanStatus) ? (p.status as PlanStatus) : "planned",
+    priority: PLAN_PRIORITIES.includes(p.priority as PlanPriority) ? (p.priority as PlanPriority) : "medium",
+    progress: typeof p.progress === "number" ? Math.max(0, Math.min(100, Math.round(p.progress))) : 0,
+    autoProgress: p.autoProgress !== false,
+    eventId: p.eventId ?? null,
+    start: p.start ?? "",
+    end: p.end ?? "",
+    owner: p.owner ?? "",
+    createdBy: p.createdBy ?? "system",
+    createdAt: p.createdAt ?? Date.now(),
+    updatedAt: p.updatedAt ?? p.createdAt ?? Date.now(),
+  };
+}
+
+function normalizeTask(t: Partial<PlanTask>): PlanTask {
+  const done = t.done ?? t.status === "done";
+  return {
+    id: t.id ?? uid(),
+    projectId: t.projectId ?? "",
+    title: t.title ?? "Untitled task",
+    description: t.description ?? "",
+    assignees: t.assignees === "all" ? "all" : Array.isArray(t.assignees) ? t.assignees : [],
+    due: t.due ?? "",
+    priority: PLAN_PRIORITIES.includes(t.priority as PlanPriority) ? (t.priority as PlanPriority) : "medium",
+    status: PLAN_TASK_STATUSES.includes(t.status as PlanTaskStatus)
+      ? (t.status as PlanTaskStatus)
+      : done
+        ? "done"
+        : "todo",
+    done,
+    createdBy: t.createdBy ?? "system",
+    createdAt: t.createdAt ?? Date.now(),
+    updatedAt: t.updatedAt ?? t.createdAt ?? Date.now(),
+    ...(t.completedAt ? { completedAt: t.completedAt } : {}),
+    ...(t.completedBy ? { completedBy: t.completedBy } : {}),
+    history: Array.isArray(t.history) ? t.history : [],
+  };
+}
+
 /** Fills in anything a stored (older) snapshot is missing. */
 function normalize(db: Partial<DB>): DB {
   const base = seed();
