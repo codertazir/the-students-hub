@@ -276,6 +276,146 @@ export const DEFAULT_HOME_CARDS: HomeCard[] = [
   { id: "funds", visible: true },
 ];
 
+/* ---------------- master plan ---------------- */
+
+export const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+
+/** School year default: August first. Admin can reorder freely. */
+export const DEFAULT_MONTH_ORDER = [7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5, 6];
+
+export type PlanColumnId =
+  | "name"
+  | "description"
+  | "tasks"
+  | "progress"
+  | "status"
+  | "event"
+  | "start"
+  | "end"
+  | "priority"
+  | "owner";
+
+export interface PlanColumn {
+  id: PlanColumnId;
+  visible: boolean;
+}
+
+export const PLAN_COLUMN_LABELS: Record<PlanColumnId, string> = {
+  name: "Project / Event",
+  description: "Description",
+  tasks: "Tasks",
+  progress: "Progress",
+  status: "Status",
+  event: "Event page",
+  start: "Start date",
+  end: "End date",
+  priority: "Priority",
+  owner: "Owner",
+};
+
+export const DEFAULT_PLAN_COLUMNS: PlanColumn[] = [
+  { id: "name", visible: true },
+  { id: "description", visible: true },
+  { id: "tasks", visible: true },
+  { id: "progress", visible: true },
+  { id: "status", visible: true },
+  { id: "event", visible: true },
+  { id: "start", visible: true },
+  { id: "end", visible: true },
+  { id: "priority", visible: true },
+  { id: "owner", visible: false },
+];
+
+export type PlanStatus = "planned" | "in_progress" | "blocked" | "done" | "cancelled";
+export const PLAN_STATUSES: PlanStatus[] = ["planned", "in_progress", "blocked", "done", "cancelled"];
+export const PLAN_STATUS_LABELS: Record<PlanStatus, string> = {
+  planned: "Planned",
+  in_progress: "In progress",
+  blocked: "Blocked",
+  done: "Done",
+  cancelled: "Cancelled",
+};
+
+export type PlanPriority = "low" | "medium" | "high" | "urgent";
+export const PLAN_PRIORITIES: PlanPriority[] = ["low", "medium", "high", "urgent"];
+export const PLAN_PRIORITY_LABELS: Record<PlanPriority, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  urgent: "Urgent",
+};
+
+/** One row of a month table. Extra fields can be added without migrations. */
+export interface PlanProject {
+  id: ID;
+  /** 0 = January … 11 = December. */
+  month: number;
+  order: number;
+  name: string;
+  description: string;
+  status: PlanStatus;
+  priority: PlanPriority;
+  /** 0–100; recomputed from tasks unless the admin overrides it. */
+  progress: number;
+  autoProgress: boolean;
+  /** Linked Students Hub event id (see DB.events). */
+  eventId?: ID | null;
+  start: string;
+  end: string;
+  owner?: string;
+  createdBy: ID | "system";
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type PlanTaskStatus = "todo" | "in_progress" | "blocked" | "done";
+export const PLAN_TASK_STATUSES: PlanTaskStatus[] = ["todo", "in_progress", "blocked", "done"];
+export const PLAN_TASK_STATUS_LABELS: Record<PlanTaskStatus, string> = {
+  todo: "To do",
+  in_progress: "In progress",
+  blocked: "Blocked",
+  done: "Done",
+};
+
+export interface PlanTaskEvent {
+  ts: number;
+  by: ID | "system";
+  byName: string;
+  action: string;
+}
+
+export interface PlanTask {
+  id: ID;
+  projectId: ID;
+  title: string;
+  description: string;
+  /** "all" = everyone in the club, otherwise an explicit list of user ids. */
+  assignees: "all" | ID[];
+  due: string;
+  priority: PlanPriority;
+  status: PlanTaskStatus;
+  done: boolean;
+  createdBy: ID | "system";
+  createdAt: number;
+  updatedAt: number;
+  completedAt?: number;
+  completedBy?: ID;
+  history: PlanTaskEvent[];
+}
+
 /** Top-level keys that live in the shared (cross-device) document. */
 export const SHARED_KEYS = [
   "announcements",
@@ -288,6 +428,10 @@ export const SHARED_KEYS = [
   "events",
   "meeting",
   "funds",
+  "planMonths",
+  "planColumns",
+  "planProjects",
+  "planTasks",
   "presence",
   "typing",
 ] as const;
@@ -307,10 +451,16 @@ export interface DB {
   events: ClubEvent[];
   meeting: Meeting;
   funds: Funds;
+  /** Admin-controlled month order for the Master Plan page. */
+  planMonths: number[];
+  planColumns: PlanColumn[];
+  planProjects: PlanProject[];
+  planTasks: PlanTask[];
   presence: Record<ID, number>;
   typing: Record<string, { name: string; ts: number }>;
   sessionUserId: ID | null;
 }
+
 
 const KEY = "tsh.db.v2";
 export const ONLINE_WINDOW_MS = 45_000;
