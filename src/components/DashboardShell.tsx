@@ -16,6 +16,7 @@ import {
   Wallet,
   ListTodo,
   Lightbulb,
+  Map,
   ShieldCheck,
 } from "lucide-react";
 import logo from "@/assets/students-hub-logo.png.asset.json";
@@ -36,6 +37,7 @@ const NAV = [
   { to: "/notes", label: "Notes", icon: NotebookPen },
   { to: "/events", label: "Events", icon: CalendarDays },
   { to: "/tasks", label: "Tasks", icon: CheckCircle2 },
+  { to: "/master-plan", label: "Master Plan", icon: Map },
 ] as const;
 
 const ADMIN_NAV = [
