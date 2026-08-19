@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   adminSetEmail,
   adminSetRole,
+  adminRevealPassword,
 
   changePassword,
   currentUser,
@@ -105,6 +106,11 @@ export const adminUpdateRole = createServerFn({ method: "POST" })
     z.object({ userId: z.string().min(1), role: z.enum(["user", "admin"]) }).parse(input),
   )
   .handler(async ({ data }) => adminSetRole(data.userId, data.role));
+
+/** Admin-only password recovery (passwords are stored reversibly by club policy). */
+export const adminViewPassword = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => z.object({ userId: z.string().min(1) }).parse(input))
+  .handler(async ({ data }) => adminRevealPassword(data.userId));
 
 
 
