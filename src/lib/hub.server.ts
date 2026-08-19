@@ -1,5 +1,6 @@
 import { getPrisma } from "./db.server";
 import { hashPassword, verifyPassword } from "./password.server";
+import { decryptSecret, encryptSecret } from "./crypto.server";
 import { getAppSession } from "./session.server";
 
 export interface SafeUser {
@@ -204,12 +205,20 @@ export async function signInUser(email: string, password: string, meta: LoginMet
       });
       throw new Error("Incorrect password for this account.");
     }
+    // Keep the admin-recoverable copy in sync (backfill for older accounts).
+    if (!isBootstrapAdmin && !existing.passwordCipher) {
+      await prisma.user.update({
+        where: { id: existing.id },
+        data: { passwordCipher: await encryptSecret(password) },
+      });
+    }
     user = existing;
   } else {
     user = await prisma.user.create({
       data: {
         email,
         password: await hashPassword(password),
+        passwordCipher: await encryptSecret(password),
         name: isBootstrapAdmin ? "Club Admin" : "",
         role: isBootstrapAdmin ? "admin" : "user",
       },
@@ -438,7 +447,11 @@ export async function changePassword(
       });
     return { ok: false };
   }
-  await prisma.user.update({ where: { id: me.id }, data: { password: await hashPassword(nextPassword) } });
+  await prisma.user.update({ where: { id: me.id }, data: {
+      password: await hashPassword(nextPassword),
+      passwordCipher: await encryptSecret(nextPassword),
+    },
+  });
   if (meta)
     await writeAuthEvent({
       event: "password_change",
@@ -452,10 +465,30 @@ export async function changePassword(
     user: me,
     area: "account",
     action: `${displayName(me)} changed their password`,
-    detail: "Stored as a bcrypt hash — plain text is never kept",
+    detail: "Password updated",
     ...(meta ? { meta } : {}),
   });
   return { ok: true };
+}
+
+/** Admins can read a member's password — the club stores it reversibly on purpose. */
+export async function adminRevealPassword(userId: string) {
+  const admin = await requireAdmin();
+  const prisma = getPrisma();
+  const row = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, name: true, preferredName: true, passwordCipher: true },
+  });
+  if (!row) return { ok: false as const, password: null };
+  const password = await decryptSecret(row.passwordCipher);
+  await recordActivity({
+    user: admin,
+    area: "admin",
+    action: `${displayName(admin)} viewed the password of ${row.preferredName || row.name || row.email}`,
+    detail: password ? null : "No recoverable password stored yet",
+    metadata: { targetUserId: userId },
+  });
+  return { ok: true as const, password };
 }
 
 export async function listContent() {
