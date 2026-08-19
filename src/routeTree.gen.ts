@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashRouteImport } from './routes/_dash'
 import { Route as LogInRouteImport } from './routes/log-in'
 import { Route as MasterPlanRouteImport } from './routes/master-plan'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as DashAccountRouteImport } from './routes/_dash.account'
 import { Route as DashEventsRouteImport } from './routes/_dash.events'
 import { Route as DashHomeRouteImport } from './routes/_dash.home'
@@ -46,6 +47,11 @@ const LogInRoute = LogInRouteImport.update({
 const MasterPlanRoute = MasterPlanRouteImport.update({
   id: '/master-plan',
   path: '/master-plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashAccountRoute = DashAccountRouteImport.update({
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/log-in': typeof LogInRoute
   '/master-plan': typeof MasterPlanRoute
+  '/terms': typeof TermsRoute
   '/account': typeof DashAccountRoute
   '/events': typeof DashEventsRoute
   '/home': typeof DashHomeRoute
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/log-in': typeof LogInRoute
   '/master-plan': typeof MasterPlanRoute
+  '/terms': typeof TermsRoute
   '/account': typeof DashAccountRoute
   '/events': typeof DashEventsRoute
   '/home': typeof DashHomeRoute
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/_dash': typeof DashRouteWithChildren
   '/log-in': typeof LogInRoute
   '/master-plan': typeof MasterPlanRoute
+  '/terms': typeof TermsRoute
   '/_dash/account': typeof DashAccountRoute
   '/_dash/events': typeof DashEventsRoute
   '/_dash/home': typeof DashHomeRoute
@@ -192,6 +201,7 @@ export interface FileRouteTypes {
     | '/'
     | '/log-in'
     | '/master-plan'
+    | '/terms'
     | '/account'
     | '/events'
     | '/home'
@@ -212,6 +222,7 @@ export interface FileRouteTypes {
     | '/'
     | '/log-in'
     | '/master-plan'
+    | '/terms'
     | '/account'
     | '/events'
     | '/home'
@@ -233,6 +244,7 @@ export interface FileRouteTypes {
     | '/_dash'
     | '/log-in'
     | '/master-plan'
+    | '/terms'
     | '/_dash/account'
     | '/_dash/events'
     | '/_dash/home'
@@ -255,6 +267,7 @@ export interface RootRouteChildren {
   DashRoute: typeof DashRouteWithChildren
   LogInRoute: typeof LogInRoute
   MasterPlanRoute: typeof MasterPlanRoute
+  TermsRoute: typeof TermsRoute
   EventsIdRoute: typeof EventsIdRoute
   NotesIdRoute: typeof NotesIdRoute
 }
@@ -287,6 +300,13 @@ declare module '@tanstack/react-router' {
       path: '/master-plan'
       fullPath: '/master-plan'
       preLoaderRoute: typeof MasterPlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_dash/account': {
@@ -436,6 +456,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashRoute: DashRouteWithChildren,
   LogInRoute: LogInRoute,
   MasterPlanRoute: MasterPlanRoute,
+  TermsRoute: TermsRoute,
   EventsIdRoute: EventsIdRoute,
   NotesIdRoute: NotesIdRoute,
 }
