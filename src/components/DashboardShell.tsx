@@ -20,6 +20,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import logo from "@/assets/students-hub-logo.png.asset.json";
+import symbol from "@/assets/students-hub-symbol.png.asset.json";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -169,7 +170,11 @@ export function DashboardShell() {
               <img src={logo.url} alt="The Students Hub" className="h-8 w-auto shrink-0 object-contain" />
             </Link>
           )}
-          {collapsed && <span className="flex-1" aria-hidden="true" />}
+          {collapsed && (
+            <Link to="/home" className="press flex flex-1 items-center justify-center transition-opacity hover:opacity-80" title="The Students Hub">
+              <img src={symbol.url} alt="The Students Hub" className="h-8 w-8 shrink-0 object-contain" />
+            </Link>
+          )}
           <button
             onClick={() => setCollapsed((c) => !c)}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
