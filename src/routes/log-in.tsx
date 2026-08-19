@@ -125,8 +125,3 @@ function LoginPage() {
     </main>
   );
 }
-
-      </div>
-    </main>
-  );
-}
