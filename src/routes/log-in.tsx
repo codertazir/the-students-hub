@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { AlertTriangle, ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,24 +104,23 @@ function LoginPage() {
               />
             </div>
 
-            <div className="flex gap-3 rounded-xl border border-border bg-primary-soft p-3.5">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-accent-foreground" />
-              <p className="text-xs leading-relaxed text-accent-foreground">
-                By logging in, you agree that your account information, login activity, IP address, and device
-                information may be recorded and visible to the admin for monitoring and security purposes.
-              </p>
-            </div>
-
             <Button type="submit" disabled={busy} className="w-full rounded-full">
               {busy && <Loader2 className="size-4 animate-spin" />}
               {busy ? "Signing in…" : "Continue"}
             </Button>
+
+            <p className="text-center text-xs leading-relaxed text-muted-foreground">
+              By logging in, you agree to the{" "}
+              <Link
+                to="/terms"
+                className="font-medium text-primary underline decoration-primary/40 underline-offset-4 transition-colors hover:decoration-primary"
+              >
+                Terms and Conditions
+              </Link>
+              .
+            </p>
           </form>
         </div>
-
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          Your password is stored only as a salted hash — never in plain text.
-        </p>
       </div>
     </main>
   );

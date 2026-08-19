@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Mail, ShieldCheck, ShieldOff, UserCog } from "lucide-react";
+import { Eye, EyeOff, KeyRound, Mail, ShieldCheck, ShieldOff, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import {
   type MonitoredLogin,
   type MonitoredUser,
 } from "@/lib/monitoring";
-import { adminUpdateEmail, adminUpdateRole } from "@/lib/hub.functions";
+import { adminUpdateEmail, adminUpdateRole, adminViewPassword } from "@/lib/hub.functions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -254,6 +254,8 @@ function MemberDetail({
         ))}
       </dl>
 
+      <PasswordViewer key={`pw-${member.id}`} userId={member.id} />
+
       <EmailEditor key={member.id} userId={member.id} email={member.email} />
 
       <section className="space-y-1.5">
@@ -303,6 +305,56 @@ function MemberDetail({
         </ul>
       </section>
     </aside>
+  );
+}
+
+/** Admins can reveal a member's password — stored reversibly by club policy. */
+function PasswordViewer({ userId }: { userId: string }) {
+  const [password, setPassword] = useState<string | null>(null);
+  const [shown, setShown] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const reveal = async () => {
+    if (shown) {
+      setShown(false);
+      return;
+    }
+    if (password !== null) {
+      setShown(true);
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await adminViewPassword({ data: { userId } });
+      if (!res.ok || !res.password) {
+        toast.error("No recoverable password stored yet — it appears after their next sign-in.");
+        return;
+      }
+      setPassword(res.password);
+      setShown(true);
+    } catch {
+      toast.error("Could not read the password.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2 rounded-xl bg-secondary/50 p-3">
+      <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase text-muted-foreground">
+        <KeyRound className="size-3.5" /> Password
+      </h3>
+      <p className="rounded-lg bg-background px-3 py-2 font-mono text-sm">
+        {shown && password ? password : "••••••••"}
+      </p>
+      <Button size="sm" variant="outline" className="w-full rounded-full" disabled={busy} onClick={reveal}>
+        {shown ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+        {shown ? "Hide password" : busy ? "Checking…" : "Show password"}
+      </Button>
+      <p className="text-[11px] leading-relaxed text-muted-foreground">
+        Viewing a password is recorded in the activity log.
+      </p>
+    </div>
   );
 }
 
