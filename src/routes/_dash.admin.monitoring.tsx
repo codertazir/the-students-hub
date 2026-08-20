@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_dash/admin/monitoring")({
       { title: "Monitoring — Admin — The Students Hub" },
       { name: "description", content: "Security monitoring: sign-ins, activity and online members." },
       { property: "og:title", content: "Monitoring — Admin" },
-      { property: "og:description", content: "Login logs, activity logs and live presence." },
+      { property: "og:description", content: "One unified activity log with filters and live presence." },
     ],
   }),
   component: MonitoringPage,
