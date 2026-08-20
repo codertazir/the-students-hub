@@ -1,14 +1,14 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
-Allow: /
+Allow: /$
+Allow: /log-in
+Allow: /terms
+Disallow: /home
+Disallow: /account
+Disallow: /notes
+Disallow: /events
+Disallow: /tasks
+Disallow: /master-plan
+Disallow: /admin
+Disallow: /api
+
+Sitemap: /sitemap.xml
