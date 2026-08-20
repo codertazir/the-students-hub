@@ -191,7 +191,10 @@ function HomePage() {
             {db.funds.currency}
           </span>
         </p>
-        <p className="mt-2 text-xs text-muted-foreground">{db.funds.note}</p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {db.funds.note || (db.funds.total === 0 ? "No funds recorded yet." : "")}
+        </p>
+
       </section>
     ),
     meeting: db.meeting.visible ? (
