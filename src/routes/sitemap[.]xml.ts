@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 /** Public pages only — the club dashboard sits behind authentication. */
 const PUBLIC_PATHS = ["/", "/log-in", "/terms"];
 
-export const Route = createFileRoute("/sitemap[.]xml")({
+export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: ({ request }) => {

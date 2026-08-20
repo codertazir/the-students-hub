@@ -116,7 +116,7 @@ const SCREENS = [
     body: (
       <div className="flex h-full flex-col justify-center gap-3 rounded-lg border border-border bg-card p-4">
         <span className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground">Club funds</span>
-        <span className="fade-slide text-3xl font-semibold tracking-tight text-primary">12,450</span>
+        <span className="fade-slide h-6 w-24 rounded-md bg-primary/25" aria-hidden="true" />
         <div className="space-y-1.5">
           {[64, 38].map((w, i) => (
             <div key={w} className="h-1.5 overflow-hidden rounded-full bg-secondary">
