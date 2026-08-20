@@ -6,7 +6,13 @@ import { track } from "@/lib/track";
 import { cn } from "@/lib/utils";
 
 /** Shared tasks list used by the home card and the dedicated Tasks page. */
-export function TasksPanel({ limit = 3, showComposer = true }: { limit?: number; showComposer?: boolean }) {
+export function TasksPanel({
+  limit = 3,
+  showComposer = true,
+}: {
+  limit?: number;
+  showComposer?: boolean;
+}) {
   const { user } = useAuth();
   const db = useDB();
   const [expanded, setExpanded] = useState(false);
@@ -65,7 +71,11 @@ export function TasksPanel({ limit = 3, showComposer = true }: { limit?: number;
     track(
       "tasks",
       `created the task "${title.trim()}"`,
-      assignee === "me" ? "Assigned to themselves" : assignee === "all" ? "Assigned to everyone" : "Assigned to a member",
+      assignee === "me"
+        ? "Assigned to themselves"
+        : assignee === "all"
+          ? "Assigned to everyone"
+          : "Assigned to a member",
     );
     if (assignee !== "me" && assignee !== "all") {
       notify({
@@ -94,14 +104,20 @@ export function TasksPanel({ limit = 3, showComposer = true }: { limit?: number;
                 {t.title}
                 <span className="block text-xs text-muted-foreground">
                   Due {t.due}
-                  {t.assignedTo !== "all" && t.assignedTo !== me.id && ` · ${userLabel(db, t.assignedTo)}`}
-                  {t.createdBy !== "system" && t.createdBy !== me.id && ` · from ${userLabel(db, t.createdBy)}`}
+                  {t.assignedTo !== "all" &&
+                    t.assignedTo !== me.id &&
+                    ` · ${userLabel(db, t.assignedTo)}`}
+                  {t.createdBy !== "system" &&
+                    t.createdBy !== me.id &&
+                    ` · from ${userLabel(db, t.createdBy)}`}
                 </span>
               </span>
             </button>
           </li>
         ))}
-        {open_.length === 0 && <li className="px-2 text-sm text-muted-foreground">Nothing open — nice work.</li>}
+        {open_.length === 0 && (
+          <li className="px-2 text-sm text-muted-foreground">Nothing open — nice work.</li>
+        )}
       </ul>
 
       {open_.length > limit && (
@@ -153,7 +169,10 @@ export function TasksPanel({ limit = 3, showComposer = true }: { limit?: number;
                 >
                   Add task
                 </button>
-                <button onClick={() => setOpen(false)} className="px-2 text-xs text-muted-foreground hover:underline">
+                <button
+                  onClick={() => setOpen(false)}
+                  className="px-2 text-xs text-muted-foreground hover:underline"
+                >
                   Cancel
                 </button>
               </div>
@@ -175,7 +194,9 @@ export function TasksPanel({ limit = 3, showComposer = true }: { limit?: number;
             onClick={() => setShowDone((v) => !v)}
             className="flex w-full items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            <ChevronDown className={cn("size-3.5 transition-transform duration-300", showDone && "rotate-180")} />
+            <ChevronDown
+              className={cn("size-3.5 transition-transform duration-300", showDone && "rotate-180")}
+            />
             Completed tasks ({done.length})
           </button>
           {showDone && (

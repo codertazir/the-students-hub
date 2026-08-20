@@ -95,8 +95,15 @@ export function DashboardShell() {
   const initials = (user.fullName || user.email).slice(0, 2).toUpperCase();
 
   const q = query.trim().toLowerCase();
-  const hit = (...parts: (string | undefined)[]) => parts.some((p) => (p ?? "").toLowerCase().includes(q));
-  const results: { key: string; label: string; sub?: string | undefined; kind: string; go: () => void }[] = q
+  const hit = (...parts: (string | undefined)[]) =>
+    parts.some((p) => (p ?? "").toLowerCase().includes(q));
+  const results: {
+    key: string;
+    label: string;
+    sub?: string | undefined;
+    kind: string;
+    go: () => void;
+  }[] = q
     ? [
         ...db.notes
           .filter((n) => hit(n.title, `#${n.number}`, n.blocks.map((b) => b.content).join(" ")))
@@ -108,7 +115,9 @@ export function DashboardShell() {
             go: () => void navigate({ to: "/notes/$id", params: { id: n.id } }),
           })),
         ...db.events
-          .filter((e) => hit(e.title, `#${e.number}`, e.location, e.blocks.map((b) => b.content).join(" ")))
+          .filter((e) =>
+            hit(e.title, `#${e.number}`, e.location, e.blocks.map((b) => b.content).join(" ")),
+          )
           .map((e) => ({
             key: `event-${e.id}`,
             label: e.title,
@@ -126,7 +135,10 @@ export function DashboardShell() {
             go: () => void navigate({ to: "/home" }),
           })),
         ...db.tasks
-          .filter((t) => (t.assignedTo === "all" || t.assignedTo === user.id || user.isAdmin) && hit(t.title))
+          .filter(
+            (t) =>
+              (t.assignedTo === "all" || t.assignedTo === user.id || user.isAdmin) && hit(t.title),
+          )
           .map((t) => ({
             key: `task-${t.id}`,
             label: t.title,
@@ -157,7 +169,6 @@ export function DashboardShell() {
       ]
     : [];
 
-
   return (
     <div className="flex min-h-screen w-full bg-secondary/40">
       <aside
@@ -166,13 +177,28 @@ export function DashboardShell() {
       >
         <div className="flex items-center gap-2 px-3 py-4">
           {!collapsed && (
-            <Link to="/home" className="press flex min-w-0 flex-1 items-center transition-opacity hover:opacity-80">
-              <img src={logo.url} alt="The Students Hub" className="h-8 w-auto shrink-0 object-contain" />
+            <Link
+              to="/home"
+              className="press flex min-w-0 flex-1 items-center transition-opacity hover:opacity-80"
+            >
+              <img
+                src={logo.url}
+                alt="The Students Hub"
+                className="h-8 w-auto shrink-0 object-contain"
+              />
             </Link>
           )}
           {collapsed && (
-            <Link to="/home" className="press flex flex-1 items-center justify-center transition-opacity hover:opacity-80" title="The Students Hub">
-              <img src={symbol.url} alt="The Students Hub" className="h-8 w-8 shrink-0 object-contain" />
+            <Link
+              to="/home"
+              className="press flex flex-1 items-center justify-center transition-opacity hover:opacity-80"
+              title="The Students Hub"
+            >
+              <img
+                src={symbol.url}
+                alt="The Students Hub"
+                className="h-8 w-8 shrink-0 object-contain"
+              />
             </Link>
           )}
           <button
@@ -181,7 +207,11 @@ export function DashboardShell() {
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className="press flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           >
-            {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+            {collapsed ? (
+              <PanelLeftOpen className="size-4" />
+            ) : (
+              <PanelLeftClose className="size-4" />
+            )}
           </button>
         </div>
 
@@ -192,7 +222,8 @@ export function DashboardShell() {
               to={item.to}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                pathname === item.to && "bg-primary text-primary-foreground shadow-soft hover:bg-primary hover:text-primary-foreground",
+                pathname === item.to &&
+                  "bg-primary text-primary-foreground shadow-soft hover:bg-primary hover:text-primary-foreground",
               )}
               title={item.label}
             >
@@ -214,7 +245,8 @@ export function DashboardShell() {
                   title={item.label}
                   className={cn(
                     "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-sidebar-foreground/75 transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    pathname === item.to && "bg-primary text-primary-foreground shadow-soft hover:bg-primary hover:text-primary-foreground",
+                    pathname === item.to &&
+                      "bg-primary text-primary-foreground shadow-soft hover:bg-primary hover:text-primary-foreground",
                   )}
                 >
                   <item.icon className="size-4 shrink-0" />
@@ -232,11 +264,15 @@ export function DashboardShell() {
           >
             <Avatar className="size-9 shrink-0">
               {user.avatar && <AvatarImage src={user.avatar} alt="" />}
-              <AvatarFallback className="bg-primary-soft text-xs text-accent-foreground">{initials}</AvatarFallback>
+              <AvatarFallback className="bg-primary-soft text-xs text-accent-foreground">
+                {initials}
+              </AvatarFallback>
             </Avatar>
             {!collapsed && (
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">{user.fullName || "Member"}</span>
+                <span className="block truncate text-sm font-medium">
+                  {user.fullName || "Member"}
+                </span>
                 <span className="block truncate text-xs text-muted-foreground">
                   {user.isAdmin ? "Admin" : "Club member"} · {user.email}
                 </span>
@@ -293,7 +329,11 @@ export function DashboardShell() {
                   >
                     <span className="min-w-0">
                       <span className="block truncate">{r.label}</span>
-                      {r.sub && <span className="block truncate text-xs text-muted-foreground">{r.sub}</span>}
+                      {r.sub && (
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {r.sub}
+                        </span>
+                      )}
                     </span>
                     <span className="shrink-0 text-xs text-muted-foreground">{r.kind}</span>
                   </button>
@@ -347,7 +387,13 @@ export function DashboardShell() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="ghost" size="icon" className="rounded-full" onClick={signOut} title="Sign out">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full"
+              onClick={signOut}
+              title="Sign out"
+            >
               <LogOut className="size-4" />
             </Button>
           </div>

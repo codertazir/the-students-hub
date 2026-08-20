@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -96,11 +102,19 @@ export function TaskDialog({ open, onOpenChange, actor, projectId, task }: Props
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
             <Label>Title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Design the poster" />
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Design the poster"
+            />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label>Description</Label>
-            <Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
+            <Textarea
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -123,7 +137,11 @@ export function TaskDialog({ open, onOpenChange, actor, projectId, task }: Props
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label>Status</Label>
-            <select className={select} value={status} onChange={(e) => setStatus(e.target.value as PlanTask["status"])}>
+            <select
+              className={select}
+              value={status}
+              onChange={(e) => setStatus(e.target.value as PlanTask["status"])}
+            >
               {PLAN_TASK_STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {PLAN_TASK_STATUS_LABELS[s]}
@@ -158,13 +176,20 @@ export function TaskDialog({ open, onOpenChange, actor, projectId, task }: Props
             </div>
             {mode === "specific" && (
               <div className="max-h-48 space-y-1 overflow-y-auto rounded-xl border border-border p-2">
-                {db.users.length === 0 && <p className="p-2 text-xs text-muted-foreground">No members yet.</p>}
+                {db.users.length === 0 && (
+                  <p className="p-2 text-xs text-muted-foreground">No members yet.</p>
+                )}
                 {db.users.map((u) => (
-                  <label key={u.id} className="flex cursor-pointer items-center gap-3 rounded-lg p-2 hover:bg-secondary">
+                  <label
+                    key={u.id}
+                    className="flex cursor-pointer items-center gap-3 rounded-lg p-2 hover:bg-secondary"
+                  >
                     <Checkbox
                       checked={picked.includes(u.id)}
                       onCheckedChange={(v) =>
-                        setPicked((cur) => (v ? [...new Set([...cur, u.id])] : cur.filter((x) => x !== u.id)))
+                        setPicked((cur) =>
+                          v ? [...new Set([...cur, u.id])] : cur.filter((x) => x !== u.id),
+                        )
                       }
                     />
                     <span className="min-w-0 flex-1 truncate text-sm">{u.fullName || u.email}</span>

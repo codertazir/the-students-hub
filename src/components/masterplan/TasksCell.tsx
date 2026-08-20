@@ -45,7 +45,12 @@ export function TasksCell({ projectId, actor }: Props) {
         <PopoverContent align="start" className="w-80 p-0">
           <div className="flex items-center justify-between border-b border-border px-3 py-2">
             <p className="text-sm font-semibold">Tasks</p>
-            <Button size="sm" variant="ghost" className="h-7 rounded-full px-2 text-xs" onClick={openNew}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 rounded-full px-2 text-xs"
+              onClick={openNew}
+            >
               <Plus className="mr-1 size-3.5" /> New
             </Button>
           </div>
@@ -58,7 +63,10 @@ export function TasksCell({ projectId, actor }: Props) {
             {tasks.map((t) => {
               const editable = canEditTask(t, actor);
               return (
-                <div key={t.id} className="group rounded-lg p-2 transition-colors hover:bg-secondary">
+                <div
+                  key={t.id}
+                  className="group rounded-lg p-2 transition-colors hover:bg-secondary"
+                >
                   <div className="flex items-start gap-2">
                     <button
                       className="mt-0.5 text-muted-foreground transition-colors hover:text-primary"
@@ -73,7 +81,9 @@ export function TasksCell({ projectId, actor }: Props) {
                       )}
                     </button>
                     <div className="min-w-0 flex-1">
-                      <p className={`truncate text-sm ${t.done ? "text-muted-foreground line-through" : ""}`}>
+                      <p
+                        className={`truncate text-sm ${t.done ? "text-muted-foreground line-through" : ""}`}
+                      >
                         {t.title}
                       </p>
                       <p className="truncate text-[11px] text-muted-foreground">

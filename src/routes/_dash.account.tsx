@@ -1,7 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Calendar, Check, Eye, EyeOff, Lock, Mail, Phone, ShieldCheck, User as UserIcon } from "lucide-react";
+import {
+  Calendar,
+  Check,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  Phone,
+  ShieldCheck,
+  User as UserIcon,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +22,10 @@ export const Route = createFileRoute("/_dash/account")({
   head: () => ({
     meta: [
       { title: "Account — The Students Hub" },
-      { name: "description", content: "Update your name, phone number, profile picture and password." },
+      {
+        name: "description",
+        content: "Update your name, phone number, profile picture and password.",
+      },
       { property: "og:title", content: "Account — The Students Hub" },
       { property: "og:description", content: "Update your profile details and password." },
     ],
@@ -99,7 +112,9 @@ function AccountPage() {
             </label>
           </div>
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-semibold tracking-tight">{user.fullName || "Your account"}</h1>
+            <h1 className="truncate text-2xl font-semibold tracking-tight">
+              {user.fullName || "Your account"}
+            </h1>
             <p className="mt-0.5 truncate text-sm text-muted-foreground">{user.email}</p>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
               <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-accent-foreground">
@@ -123,7 +138,12 @@ function AccountPage() {
             <Label htmlFor="name" className="flex items-center gap-1.5">
               <UserIcon className="size-3.5" /> Full name
             </Label>
-            <Input id="name" value={name} maxLength={120} onChange={(e) => setName(e.target.value)} />
+            <Input
+              id="name"
+              value={name}
+              maxLength={120}
+              onChange={(e) => setName(e.target.value)}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="phone" className="flex items-center gap-1.5">
@@ -176,7 +196,8 @@ function AccountPage() {
           <Lock className="size-4" /> Change password
         </h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Confirm your current password first. Passwords are stored only as secure hashes — never in plain text.
+          Confirm your current password first. Passwords are stored only as secure hashes — never in
+          plain text.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <div className="space-y-1.5">
@@ -220,9 +241,11 @@ function AccountPage() {
             {reveal ? "Hide" : "Show"} passwords
           </button>
           <span>Use at least 8 characters.</span>
-          {newPassword.length > 0 && confirmPassword.length > 0 && newPassword !== confirmPassword && (
-            <span className="text-destructive">New passwords do not match.</span>
-          )}
+          {newPassword.length > 0 &&
+            confirmPassword.length > 0 &&
+            newPassword !== confirmPassword && (
+              <span className="text-destructive">New passwords do not match.</span>
+            )}
         </div>
         <Button
           variant="outline"

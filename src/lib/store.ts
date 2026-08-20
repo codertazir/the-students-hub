@@ -25,7 +25,6 @@ export interface User {
   onboarded: boolean;
 }
 
-
 export interface LoginRecord {
   id: ID;
   userId: ID;
@@ -209,7 +208,11 @@ export interface EventCard {
   title: string;
   visible: boolean;
   poll?: { question: string; options: PollOption[] };
-  budget?: { total: number; currency: string; allocations: { id: ID; label: string; amount: number }[] };
+  budget?: {
+    total: number;
+    currency: string;
+    allocations: { id: ID; label: string; amount: number }[];
+  };
   stats?: { id: ID; label: string; value: string }[];
   info?: { body: string };
   folder?: { uploadsAllowed: boolean; files: EventFile[] };
@@ -243,13 +246,7 @@ export interface ClubEvent {
 
 /** Cards the admin can reorder / hide on the member home page. */
 export type HomeCardId =
-  | "announcements"
-  | "suggestions"
-  | "meeting"
-  | "tasks"
-  | "notes"
-  | "events"
-  | "funds";
+  "announcements" | "suggestions" | "meeting" | "tasks" | "notes" | "events" | "funds";
 
 export interface HomeCard {
   id: HomeCardId;
@@ -340,7 +337,13 @@ export const DEFAULT_PLAN_COLUMNS: PlanColumn[] = [
 ];
 
 export type PlanStatus = "planned" | "in_progress" | "blocked" | "done" | "cancelled";
-export const PLAN_STATUSES: PlanStatus[] = ["planned", "in_progress", "blocked", "done", "cancelled"];
+export const PLAN_STATUSES: PlanStatus[] = [
+  "planned",
+  "in_progress",
+  "blocked",
+  "done",
+  "cancelled",
+];
 export const PLAN_STATUS_LABELS: Record<PlanStatus, string> = {
   planned: "Planned",
   in_progress: "In progress",
@@ -461,16 +464,10 @@ export interface DB {
   sessionUserId: ID | null;
 }
 
-
 const KEY = "tsh.db.v2";
 export const ONLINE_WINDOW_MS = 45_000;
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
-
-const day = 86_400_000;
-const iso = (offset: number) => new Date(Date.now() + offset * day).toISOString().slice(0, 10);
-const pretty = (offset: number, time: string) =>
-  `${new Date(Date.now() + offset * day).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })} · ${time}`;
 
 const ACCENTS = ["#1d4ed8", "#0f766e", "#7c3aed", "#b45309", "#be123c", "#0369a1"];
 export const previewAccent = (i: number) => ACCENTS[i % ACCENTS.length]!;
@@ -480,251 +477,32 @@ export function seed(): DB {
     users: [],
     logins: [],
     activity: [],
-    announcements: [
-      {
-        id: uid(),
-        title: "Club photo day moved to Sunday",
-        body: "Bring your ID badge and wear the club hoodie. We meet at the main atrium at 8:15.",
-        ts: Date.now() - 3_600_000,
-        pinned: true,
-        cta: { label: "See events", to: "/events" },
-      },
-      {
-        id: uid(),
-        title: "New note template for meetings",
-        body: "Meeting notes are collaborative now — type straight into the response areas.",
-        ts: Date.now() - day,
-        pinned: true,
-      },
-    ],
+    announcements: [],
     suggestions: [],
     suggestionState: {},
     homeCards: DEFAULT_HOME_CARDS.map((c) => ({ ...c })),
-    tasks: [
-      {
-        id: uid(),
-        title: "Submit your event idea for the winter showcase",
-        due: "Sunday",
-        done: false,
-        createdBy: "system",
-        assignedTo: "all",
-        createdAt: Date.now() - day,
-      },
-      {
-        id: uid(),
-        title: "Read the leadership handbook (pages 4–9)",
-        due: "Tuesday",
-        done: false,
-        createdBy: "system",
-        assignedTo: "all",
-        createdAt: Date.now() - 2 * day,
-      },
-      {
-        id: uid(),
-        title: "Confirm attendance for the community drive",
-        due: "Thursday",
-        done: false,
-        createdBy: "system",
-        assignedTo: "all",
-        createdAt: Date.now() - 3 * day,
-      },
-      {
-        id: uid(),
-        title: "Collect the poster printing quote",
-        due: "Friday",
-        done: true,
-        createdBy: "system",
-        assignedTo: "all",
-        createdAt: Date.now() - 5 * day,
-        completedAt: Date.now() - 4 * day,
-      },
-    ],
-    notifications: [
-      {
-        id: uid(),
-        title: "Meeting notes are open",
-        body: "This week's response areas are live. Add your thoughts before Friday.",
-        ts: Date.now() - 1_800_000,
-        read: false,
-        targets: "all",
-        cta: { label: "Open notes", to: "/notes" },
-      },
-    ],
-    notes: [
-      {
-        id: uid(),
-        number: 2,
-        title: "Planning the winter showcase",
-        dateLabel: pretty(-1, "13:40"),
-        meetingDate: iso(-1),
-        previewEmoji: "❄️",
-        previewAccent: ACCENTS[0]!,
-        createdAt: Date.now() - day,
-        blocks: [
-          { id: uid(), kind: "heading", content: "Agenda" },
-          {
-            id: uid(),
-            kind: "text",
-            content:
-              "We reviewed the showcase budget, the volunteer rota and the media team hand-off. Budget approved at 4,000 SAR; two volunteers still needed for setup.",
-          },
-          { id: uid(), kind: "callout", content: "Posters are due next Wednesday — send drafts to the media channel." },
-          { id: uid(), kind: "divider", content: "" },
-          {
-            id: uid(),
-            kind: "input",
-            content: "What should we improve about our last event?",
-            shared: "",
-            allowAnonymous: true,
-          },
-        ],
-      },
-      {
-        id: uid(),
-        number: 1,
-        title: "Kick-off — roles and expectations",
-        dateLabel: pretty(-8, "13:40"),
-        meetingDate: iso(-8),
-        previewEmoji: "🚀",
-        previewAccent: ACCENTS[1]!,
-        createdAt: Date.now() - 8 * day,
-        blocks: [
-          { id: uid(), kind: "heading", content: "Welcome to the club" },
-          {
-            id: uid(),
-            kind: "text",
-            content:
-              "Introduced the committee, agreed on meeting cadence (every Sunday, 3rd period) and set up the notes workflow.",
-          },
-          { id: uid(), kind: "input", content: "Which committee would you like to join?", shared: "", allowAnonymous: false },
-        ],
-      },
-    ],
-    events: [
-      {
-        id: uid(),
-        number: 3,
-        title: "Winter Showcase",
-        dateLabel: pretty(9, "17:00"),
-        date: iso(9),
-        location: "Main Hall",
-        previewEmoji: "🎭",
-        previewAccent: ACCENTS[0]!,
-        completed: false,
-        createdAt: Date.now() - day,
-        blocks: [
-          { id: uid(), kind: "heading", content: "Run of show" },
-          {
-            id: uid(),
-            kind: "text",
-            content: "Doors open 17:00. Each committee gets a booth and a five minute stage slot.",
-          },
-          { id: uid(), kind: "input", content: "Which slot would your committee prefer?", shared: "", allowAnonymous: false },
-        ],
-        cards: [
-          {
-            id: uid(),
-            type: "poll",
-            title: "Theme vote",
-            visible: true,
-            poll: {
-              question: "Which theme should we run with?",
-              options: [
-                { id: uid(), label: "Neon night", votes: [] },
-                { id: uid(), label: "Retro arcade", votes: [] },
-                { id: uid(), label: "Space station", votes: [] },
-              ],
-            },
-          },
-          {
-            id: uid(),
-            type: "budget",
-            title: "Budget",
-            visible: true,
-            budget: {
-              total: 4000,
-              currency: "SAR",
-              allocations: [
-                { id: uid(), label: "Stage & lighting", amount: 1800 },
-                { id: uid(), label: "Printing", amount: 700 },
-                { id: uid(), label: "Refreshments", amount: 900 },
-              ],
-            },
-          },
-          {
-            id: uid(),
-            type: "stats",
-            title: "At a glance",
-            visible: true,
-            stats: [
-              { id: uid(), label: "Booths", value: "8" },
-              { id: uid(), label: "Volunteers", value: "12" },
-              { id: uid(), label: "Expected guests", value: "240" },
-            ],
-          },
-          {
-            id: uid(),
-            type: "folder",
-            title: "Posters",
-            visible: true,
-            folder: { uploadsAllowed: true, files: [] },
-          },
-        ],
-        comments: [],
-      },
-      {
-        id: uid(),
-        number: 2,
-        title: "Community Drive",
-        dateLabel: pretty(20, "09:30"),
-        date: iso(20),
-        location: "Sports Court",
-        previewEmoji: "📚",
-        previewAccent: ACCENTS[1]!,
-        completed: false,
-        createdAt: Date.now() - 2 * day,
-        blocks: [
-          { id: uid(), kind: "text", content: "Collecting books and stationery for the partner school." },
-        ],
-        cards: [
-          { id: uid(), type: "info", title: "Drop-off point", visible: true, info: { body: "Boxes are next to the library entrance all week." } },
-          { id: uid(), type: "folder", title: "Sign-up sheets", visible: true, folder: { uploadsAllowed: true, files: [] } },
-        ],
-        comments: [],
-      },
-      {
-        id: uid(),
-        number: 1,
-        title: "Leadership Workshop",
-        dateLabel: pretty(-12, "14:10"),
-        date: iso(-12),
-        location: "Room B204",
-        previewEmoji: "🎤",
-        previewAccent: ACCENTS[2]!,
-        completed: true,
-        createdAt: Date.now() - 20 * day,
-        blocks: [{ id: uid(), kind: "text", content: "Guest speaker session on running student teams." }],
-        cards: [{ id: uid(), type: "stats", title: "Turnout", visible: true, stats: [{ id: uid(), label: "Attended", value: "31" }] }],
-        comments: [],
-      },
-    ],
+    tasks: [],
+    notifications: [],
+    notes: [],
+    events: [],
     meeting: {
       id: uid(),
-      title: "Weekly club meeting",
-      date: iso(2),
-      time: "13:40 — 14:25",
-      room: "Room B204",
-      agenda: ["Showcase run-through", "Budget sign-off", "Volunteer rota", "Open floor"],
-      note: "Bring your committee updates.",
-      visible: true,
+      title: "",
+      date: "",
+      time: "",
+      room: "",
+      agenda: [],
+      note: "",
+      visible: false,
     },
     funds: {
-      total: 12450,
+      total: 0,
       currency: "SAR",
       label: "Club funds",
-      note: "Updated after the showcase sign-off.",
+      note: "",
       updatedAt: Date.now(),
     },
+
     planMonths: [...DEFAULT_MONTH_ORDER],
     planColumns: DEFAULT_PLAN_COLUMNS.map((c) => ({ ...c })),
     planProjects: [],
@@ -741,7 +519,9 @@ const listeners = new Set<() => void>();
 /** Keeps the saved card order but drops unknown ids and appends new ones. */
 export function mergeHomeCards(saved?: HomeCard[]): HomeCard[] {
   const known = new Set(DEFAULT_HOME_CARDS.map((c) => c.id));
-  const kept = (saved ?? []).filter((c) => c && known.has(c.id)).map((c) => ({ id: c.id, visible: c.visible !== false }));
+  const kept = (saved ?? [])
+    .filter((c) => c && known.has(c.id))
+    .map((c) => ({ id: c.id, visible: c.visible !== false }));
   const seen = new Set(kept.map((c) => c.id));
   for (const c of DEFAULT_HOME_CARDS) if (!seen.has(c.id)) kept.push({ ...c });
   return kept;
@@ -777,8 +557,11 @@ function normalizeProject(p: Partial<PlanProject>, index: number): PlanProject {
     name: p.name ?? "Untitled project",
     description: p.description ?? "",
     status: PLAN_STATUSES.includes(p.status as PlanStatus) ? (p.status as PlanStatus) : "planned",
-    priority: PLAN_PRIORITIES.includes(p.priority as PlanPriority) ? (p.priority as PlanPriority) : "medium",
-    progress: typeof p.progress === "number" ? Math.max(0, Math.min(100, Math.round(p.progress))) : 0,
+    priority: PLAN_PRIORITIES.includes(p.priority as PlanPriority)
+      ? (p.priority as PlanPriority)
+      : "medium",
+    progress:
+      typeof p.progress === "number" ? Math.max(0, Math.min(100, Math.round(p.progress))) : 0,
     autoProgress: p.autoProgress !== false,
     eventId: p.eventId ?? null,
     start: p.start ?? "",
@@ -799,7 +582,9 @@ function normalizeTask(t: Partial<PlanTask>): PlanTask {
     description: t.description ?? "",
     assignees: t.assignees === "all" ? "all" : Array.isArray(t.assignees) ? t.assignees : [],
     due: t.due ?? "",
-    priority: PLAN_PRIORITIES.includes(t.priority as PlanPriority) ? (t.priority as PlanPriority) : "medium",
+    priority: PLAN_PRIORITIES.includes(t.priority as PlanPriority)
+      ? (t.priority as PlanPriority)
+      : "medium",
     status: PLAN_TASK_STATUSES.includes(t.status as PlanTaskStatus)
       ? (t.status as PlanTaskStatus)
       : done
@@ -948,7 +733,9 @@ export function subscribe(fn: () => void) {
 /* ---------------- derived helpers ---------------- */
 
 export function visibleTasks(db: DB, userId: ID) {
-  return db.tasks.filter((t) => t.assignedTo === "all" || t.assignedTo === userId || t.createdBy === userId);
+  return db.tasks.filter(
+    (t) => t.assignedTo === "all" || t.assignedTo === userId || t.createdBy === userId,
+  );
 }
 
 /** Every suggestion aimed at this member, regardless of their reaction. */
@@ -983,7 +770,6 @@ export function setSuggestionMark(suggestionId: ID, userId: ID, state: Suggestio
     }
   });
 }
-
 
 /** Admin breakdown for one suggestion card. */
 export function suggestionStats(db: DB, s: Suggestion) {
@@ -1056,7 +842,11 @@ export function describeClient() {
         : /Firefox\//.test(ua)
           ? "Firefox"
           : "Unknown browser";
-  const device = /iPad|Tablet/.test(ua) ? "Tablet" : /Mobi|Android|iPhone/.test(ua) ? "Phone" : "Desktop";
+  const device = /iPad|Tablet/.test(ua)
+    ? "Tablet"
+    : /Mobi|Android|iPhone/.test(ua)
+      ? "Phone"
+      : "Desktop";
   return { ua, os, browser, device };
 }
 
@@ -1070,9 +860,20 @@ export async function lookupIp() {
   }
 }
 
-export function logActivity(user: Pick<User, "id" | "email">, area: ActivityLog["area"], action: string) {
+export function logActivity(
+  user: Pick<User, "id" | "email">,
+  area: ActivityLog["area"],
+  action: string,
+) {
   setDB((db) => {
-    db.activity.unshift({ id: uid(), userId: user.id, email: user.email, area, action, ts: Date.now() });
+    db.activity.unshift({
+      id: uid(),
+      userId: user.id,
+      email: user.email,
+      area,
+      action,
+      ts: Date.now(),
+    });
     db.activity = db.activity.slice(0, 200);
   });
   // Persist it too, so history survives devices and shows the real IP/device.

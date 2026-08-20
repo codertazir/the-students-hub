@@ -27,11 +27,7 @@ export interface LoginMeta {
 
 /** Every authentication-related event we keep in the login log. */
 export type AuthEvent =
-  | "sign_in"
-  | "sign_out"
-  | "failed_login"
-  | "password_change"
-  | "account_created";
+  "sign_in" | "sign_out" | "failed_login" | "password_change" | "account_created";
 
 export interface SafeNote {
   id: string;
@@ -359,7 +355,10 @@ export async function updateProfile(
       action: `${who} updated their phone number`,
       detail: `Now ${patch.phoneNumber || "(none)"}`,
     });
-  if (patch.profilePicture !== undefined && (patch.profilePicture ?? "") !== (me.profilePicture ?? ""))
+  if (
+    patch.profilePicture !== undefined &&
+    (patch.profilePicture ?? "") !== (me.profilePicture ?? "")
+  )
     changes.push({
       action: patch.profilePicture
         ? `${who} updated their profile picture`
@@ -426,11 +425,7 @@ export async function adminSetRole(userId: string, role: "user" | "admin") {
   return { ok: true as const, user: safe };
 }
 
-export async function changePassword(
-  oldPassword: string,
-  nextPassword: string,
-  meta?: LoginMeta,
-) {
+export async function changePassword(oldPassword: string, nextPassword: string, meta?: LoginMeta) {
   const me = await requireUser();
   const prisma = getPrisma();
   const row = await prisma.user.findUnique({ where: { id: me.id } });
@@ -447,7 +442,9 @@ export async function changePassword(
       });
     return { ok: false };
   }
-  await prisma.user.update({ where: { id: me.id }, data: {
+  await prisma.user.update({
+    where: { id: me.id },
+    data: {
       password: await hashPassword(nextPassword),
       passwordCipher: await encryptSecret(nextPassword),
     },
@@ -577,7 +574,11 @@ export async function listMonitoring() {
     prisma.loginLog.findMany({ orderBy: { timestamp: "desc" }, take: 500 }),
     prisma.activityLog.findMany({ orderBy: { timestamp: "desc" }, take: 500 }),
     prisma.loginLog.groupBy({ by: ["userId"], _count: { _all: true }, _max: { timestamp: true } }),
-    prisma.activityLog.groupBy({ by: ["userId"], _count: { _all: true }, _max: { timestamp: true } }),
+    prisma.activityLog.groupBy({
+      by: ["userId"],
+      _count: { _all: true },
+      _max: { timestamp: true },
+    }),
     prisma.note.count(),
     prisma.event.count(),
   ]);
@@ -746,9 +747,7 @@ export async function writeActivity(input: {
   const me = await requireUser();
   // Client callers send a verb phrase ("voted 'Option B' in …"); the server
   // prefixes the real person so every line reads as a full sentence.
-  const action = /^[a-z]/.test(input.action)
-    ? `${displayName(me)} ${input.action}`
-    : input.action;
+  const action = /^[a-z]/.test(input.action) ? `${displayName(me)} ${input.action}` : input.action;
   await recordActivity({
     user: me,
     area: input.area,
@@ -786,4 +785,3 @@ export async function listActivity(limit = 300) {
     ts: r.timestamp.toISOString(),
   }));
 }
-

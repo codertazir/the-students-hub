@@ -11,9 +11,15 @@ export const Route = createFileRoute("/_dash/events")({
   head: () => ({
     meta: [
       { title: "Events — The Students Hub" },
-      { name: "description", content: "Browse upcoming and past club events, polls, budgets and shared files." },
+      {
+        name: "description",
+        content: "Browse upcoming and past club events, polls, budgets and shared files.",
+      },
       { property: "og:title", content: "Events — The Students Hub" },
-      { property: "og:description", content: "Browse upcoming and past club events, polls, budgets and shared files." },
+      {
+        property: "og:description",
+        content: "Browse upcoming and past club events, polls, budgets and shared files.",
+      },
     ],
   }),
   component: EventsPage,
@@ -54,7 +60,15 @@ function EventsPage() {
         completed: false,
         createdAt: Date.now(),
         blocks: [{ id: uid(), kind: "text", content: "Add the details for this event." }],
-        cards: [{ id: uid(), type: "info", title: "About this event", visible: true, info: { body: "Share the plan here." } }],
+        cards: [
+          {
+            id: uid(),
+            type: "info",
+            title: "About this event",
+            visible: true,
+            info: { body: "Share the plan here." },
+          },
+        ],
         comments: [],
       });
     });
@@ -98,7 +112,9 @@ function EventsPage() {
           >
             <div
               className="flex aspect-[4/3] items-center justify-center text-6xl"
-              style={{ background: `linear-gradient(135deg, ${e.previewAccent}33, ${e.previewAccent}0d)` }}
+              style={{
+                background: `linear-gradient(135deg, ${e.previewAccent}33, ${e.previewAccent}0d)`,
+              }}
             >
               <span>{e.previewEmoji}</span>
             </div>
@@ -177,7 +193,9 @@ function EventsPage() {
           <p className="text-4xl">🎪</p>
           <p className="text-sm font-medium">No events yet</p>
           <p className="text-xs text-muted-foreground">
-            {user.isAdmin ? "Create the first event to get started." : "Check back soon for upcoming events."}
+            {user.isAdmin
+              ? "Create the first event to get started."
+              : "Check back soon for upcoming events."}
           </p>
         </div>
       ) : (
@@ -194,7 +212,12 @@ function EventsPage() {
                 onClick={() => setShowCompleted((s) => !s)}
                 className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
-                <ChevronDown className={cn("size-4 transition-transform duration-300", showCompleted && "rotate-180")} />
+                <ChevronDown
+                  className={cn(
+                    "size-4 transition-transform duration-300",
+                    showCompleted && "rotate-180",
+                  )}
+                />
                 Completed events ({completed.length})
               </button>
               <div

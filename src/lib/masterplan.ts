@@ -65,7 +65,10 @@ export function toggleColumn(index: number) {
 
 /* ---------------- projects (admin) ---------------- */
 
-export type ProjectDraft = Omit<PlanProject, "id" | "order" | "createdAt" | "updatedAt" | "createdBy">;
+export type ProjectDraft = Omit<
+  PlanProject,
+  "id" | "order" | "createdAt" | "updatedAt" | "createdBy"
+>;
 
 export function createProject(draft: ProjectDraft, actor: PlanActor) {
   const id = uid();
@@ -212,8 +215,12 @@ function syncProgress(d: DB, projectId: ID) {
   const project = d.planProjects.find((p) => p.id === projectId);
   if (!project || !project.autoProgress) return;
   const tasks = d.planTasks.filter((t) => t.projectId === projectId);
-  project.progress = tasks.length === 0 ? project.progress : Math.round((tasks.filter((t) => t.done).length / tasks.length) * 100);
-  if (tasks.length > 0 && project.progress === 100 && project.status !== "cancelled") project.status = "done";
+  project.progress =
+    tasks.length === 0
+      ? project.progress
+      : Math.round((tasks.filter((t) => t.done).length / tasks.length) * 100);
+  if (tasks.length > 0 && project.progress === 100 && project.status !== "cancelled")
+    project.status = "done";
   project.updatedAt = Date.now();
 }
 

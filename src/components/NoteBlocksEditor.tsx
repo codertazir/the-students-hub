@@ -39,7 +39,9 @@ export function NoteBlocksEditor({
   return (
     <div>
       <div className="space-y-6">
-        {blocks.length === 0 && !editing && <p className="text-sm text-muted-foreground">{emptyLabel}</p>}
+        {blocks.length === 0 && !editing && (
+          <p className="text-sm text-muted-foreground">{emptyLabel}</p>
+        )}
         {blocks.map((block, idx) => (
           <BlockView
             key={block.id}
@@ -127,7 +129,10 @@ export function BlockView({
             >
               <ChevronDown className="size-3.5" />
             </button>
-            <button onClick={onDelete} className="rounded-md p-1 text-destructive transition-colors hover:bg-secondary">
+            <button
+              onClick={onDelete}
+              className="rounded-md p-1 text-destructive transition-colors hover:bg-secondary"
+            >
               <Trash2 className="size-3.5" />
             </button>
           </div>
@@ -200,7 +205,13 @@ export function BlockView({
           <ResponseBlockSettings block={block} onPatch={onPatch} />
         </div>
       ) : (
-        <ResponseInput block={block} scope={scope} userId={userId} userName={userName} onPatch={onPatch} />
+        <ResponseInput
+          block={block}
+          scope={scope}
+          userId={userId}
+          userName={userName}
+          onPatch={onPatch}
+        />
       )}
     </div>,
   );

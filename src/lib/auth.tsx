@@ -1,4 +1,13 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   getDB,
   previewAccent,
@@ -28,7 +37,6 @@ import {
   upsertEvent,
   upsertNote,
 } from "./hub.functions";
-
 
 type SafeUser = Awaited<ReturnType<typeof getSessionUser>>;
 
@@ -60,7 +68,6 @@ interface AuthValue {
   updateUser: (patch: Partial<User>) => Promise<boolean>;
   changePassword: (oldPassword: string, next: string) => Promise<boolean>;
 }
-
 
 const AuthContext = createContext<AuthValue | null>(null);
 
@@ -94,7 +101,6 @@ function mergeUser(row: NonNullable<SafeUser>) {
   });
   return mapped;
 }
-
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const db = useDB();
@@ -133,7 +139,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(t);
   }, [user?.id]);
 
-
   // Keep every signed-in device on the same shared document.
   useEffect(() => {
     if (!user) return;
@@ -159,9 +164,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               meetingDate: n.date.slice(0, 10),
               previewEmoji: payload?.previewEmoji ?? local?.previewEmoji ?? "📝",
               previewAccent: payload?.previewAccent ?? local?.previewAccent ?? previewAccent(i),
-              blocks: payload?.blocks ?? local?.blocks ?? [
-                { id: `b-${n.id}`, kind: "text" as const, content: n.content },
-              ],
+              blocks: payload?.blocks ??
+                local?.blocks ?? [{ id: `b-${n.id}`, kind: "text" as const, content: n.content }],
               createdAt: local?.createdAt ?? new Date(n.date).getTime(),
             };
           });
@@ -180,9 +184,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               previewEmoji: payload?.previewEmoji ?? local?.previewEmoji ?? "🎉",
               previewAccent: payload?.previewAccent ?? local?.previewAccent ?? previewAccent(i),
               completed: payload?.completed ?? local?.completed ?? false,
-              blocks: payload?.blocks ?? local?.blocks ?? [
-                { id: `b-${e.id}`, kind: "text" as const, content: e.description },
-              ],
+              blocks: payload?.blocks ??
+                local?.blocks ?? [
+                  { id: `b-${e.id}`, kind: "text" as const, content: e.description },
+                ],
               cards: payload?.cards ?? local?.cards ?? [],
               comments: local?.comments ?? [],
               createdAt: local?.createdAt ?? new Date(e.date).getTime(),
@@ -286,7 +291,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           if (prev) {
             for (const id of prev.notes) if (!noteIds.has(id)) await removeNote({ data: { id } });
-            for (const id of prev.events) if (!eventIds.has(id)) await removeEvent({ data: { id } });
+            for (const id of prev.events)
+              if (!eventIds.has(id)) await removeEvent({ data: { id } });
           }
         } catch {
           /* transient network issue — retried on the next change */
@@ -297,13 +303,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer);
   }, [db.notes, db.events, user?.isAdmin]);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { user: row, created } = await signInFn({ data: { email, password } });
-    const mapped = mergeUser(row);
-    // The sign-in itself is logged server-side (login log + activity log).
-    void hydrate(mapped.isAdmin);
-    return { created };
-  }, [hydrate]);
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      const { user: row, created } = await signInFn({ data: { email, password } });
+      const mapped = mergeUser(row);
+      // The sign-in itself is logged server-side (login log + activity log).
+      void hydrate(mapped.isAdmin);
+      return { created };
+    },
+    [hydrate],
+  );
 
   const signOut = useCallback(() => {
     const current = getDB().sessionUserId;
@@ -329,7 +338,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const row = await saveProfile({
           data: {
             ...(patch.fullName !== undefined ? { name: patch.fullName } : {}),
-            ...(patch.preferredName !== undefined ? { preferredName: patch.preferredName ?? null } : {}),
+            ...(patch.preferredName !== undefined
+              ? { preferredName: patch.preferredName ?? null }
+              : {}),
             ...(patch.dob !== undefined ? { dateOfBirth: patch.dob } : {}),
             ...(patch.phone !== undefined ? { phoneNumber: patch.phone ?? null } : {}),
             ...(patch.avatar !== undefined ? { profilePicture: patch.avatar ?? null } : {}),
@@ -355,7 +366,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     [user],
   );
-
 
   const value = useMemo(
     () => ({ user, loading, signIn, signOut, updateUser, changePassword }),

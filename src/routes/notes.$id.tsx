@@ -20,7 +20,6 @@ export const Route = createFileRoute("/notes/$id")({
   component: NoteDetailPage,
 });
 
-
 function NoteDetailPage() {
   const { id } = Route.useParams();
   const { user } = useAuth();
@@ -83,7 +82,9 @@ function NoteDetailPage() {
         id: uid(),
         kind,
         content: kind === "divider" ? "" : "New content",
-        ...(kind === "input" ? { shared: "", allowAnonymous: true, mode: "live" as const, submissions: [] } : {}),
+        ...(kind === "input"
+          ? { shared: "", allowAnonymous: true, mode: "live" as const, submissions: [] }
+          : {}),
       });
     });
   };

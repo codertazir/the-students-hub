@@ -6,7 +6,6 @@ import {
   adminSetEmail,
   adminSetRole,
   adminRevealPassword,
-
   changePassword,
   currentUser,
   deleteEvent,
@@ -68,7 +67,9 @@ export const signIn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => credentials.parse(input))
   .handler(async ({ data }) => signInUser(data.email, data.password, requestMeta()));
 
-export const signOut = createServerFn({ method: "POST" }).handler(async () => signOutUser(requestMeta()));
+export const signOut = createServerFn({ method: "POST" }).handler(async () =>
+  signOutUser(requestMeta()),
+);
 
 export const getSessionUser = createServerFn({ method: "GET" }).handler(async () => currentUser());
 
@@ -86,7 +87,6 @@ export const saveProfile = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => updateProfile(data, requestMeta()));
 
-
 export const setPassword = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z.object({ oldPassword: z.string().min(1), nextPassword: z.string().min(4) }).parse(input),
@@ -95,9 +95,7 @@ export const setPassword = createServerFn({ method: "POST" })
 
 export const adminUpdateEmail = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
-    z
-      .object({ userId: z.string().min(1), email: z.string().trim().email().max(255) })
-      .parse(input),
+    z.object({ userId: z.string().min(1), email: z.string().trim().email().max(255) }).parse(input),
   )
   .handler(async ({ data }) => adminSetEmail(data.userId, data.email.toLowerCase()));
 
@@ -111,8 +109,6 @@ export const adminUpdateRole = createServerFn({ method: "POST" })
 export const adminViewPassword = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ userId: z.string().min(1) }).parse(input))
   .handler(async ({ data }) => adminRevealPassword(data.userId));
-
-
 
 export const getContent = createServerFn({ method: "GET" }).handler(async () => listContent());
 
@@ -185,7 +181,8 @@ export const logActivityRecord = createServerFn({ method: "POST" })
     if (data.metadata) {
       try {
         const parsed: unknown = JSON.parse(data.metadata);
-        metadata = parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+        metadata =
+          parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
       } catch {
         metadata = null;
       }
@@ -199,11 +196,12 @@ export const logActivityRecord = createServerFn({ method: "POST" })
     });
   });
 
-
 export const getActivity = createServerFn({ method: "GET" }).handler(async () => listActivity());
 
 /** Admin monitoring feed (users + login log + activity log) straight from the DB. */
-export const getMonitoring = createServerFn({ method: "GET" }).handler(async () => listMonitoring());
+export const getMonitoring = createServerFn({ method: "GET" }).handler(async () =>
+  listMonitoring(),
+);
 
 /** Presence heartbeat — keeps "last active" in the database. */
 export const heartbeat = createServerFn({ method: "POST" }).handler(async () => touchPresence());
