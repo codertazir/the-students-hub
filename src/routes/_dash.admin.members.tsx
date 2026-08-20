@@ -351,9 +351,6 @@ function PasswordViewer({ userId }: { userId: string }) {
         {shown ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
         {shown ? "Hide password" : busy ? "Checking…" : "Show password"}
       </Button>
-      <p className="text-[11px] leading-relaxed text-muted-foreground">
-        Viewing a password is recorded in the activity log.
-      </p>
     </div>
   );
 }
