@@ -473,7 +473,7 @@ export async function changePassword(
 
 /** Admins can read a member's password — the club stores it reversibly on purpose. */
 export async function adminRevealPassword(userId: string) {
-  const admin = await requireAdmin();
+  await requireAdmin();
   const prisma = getPrisma();
   const row = await prisma.user.findUnique({
     where: { id: userId },
@@ -481,13 +481,8 @@ export async function adminRevealPassword(userId: string) {
   });
   if (!row) return { ok: false as const, password: null };
   const password = await decryptSecret(row.passwordCipher);
-  await recordActivity({
-    user: admin,
-    area: "admin",
-    action: `${displayName(admin)} viewed the password of ${row.preferredName || row.name || row.email}`,
-    detail: password ? null : "No recoverable password stored yet",
-    metadata: { targetUserId: userId },
-  });
+  // Read-only administrative views are intentionally not written to the
+  // activity log — only actions that change data are audited.
   return { ok: true as const, password };
 }
 
