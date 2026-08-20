@@ -75,7 +75,22 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
+  /** Absolute canonical URL for the current page (needed for SEO + social cards). */
+  loader: async ({ location }) => {
+    let origin = "";
+    if (typeof window !== "undefined") {
+      origin = window.location.origin;
+    } else {
+      try {
+        const { getRequest } = await import("@tanstack/react-start/server");
+        origin = new URL(getRequest().url).origin;
+      } catch {
+        origin = "";
+      }
+    }
+    return { canonical: origin ? origin + location.pathname : "" };
+  },
+  head: ({ loaderData }) => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
@@ -90,7 +105,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "The hub used for the students club — notes, events and announcements in one place.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "The Students Hub" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "theme-color", content: "#0b0b0c" },
     ],
     links: [
       {
@@ -98,8 +115,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "apple-touch-icon", href: "/favicon.png" },
+      ...(loaderData?.canonical ? [{ rel: "canonical", href: loaderData.canonical }] : []),
     ],
   }),
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
