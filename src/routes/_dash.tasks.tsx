@@ -5,9 +5,16 @@ export const Route = createFileRoute("/_dash/tasks")({
   head: () => ({
     meta: [
       { title: "Tasks — The Students Hub" },
-      { name: "description", content: "Every club task in one place: create tasks, assign them to members and track what's done." },
+      {
+        name: "description",
+        content:
+          "Every club task in one place: create tasks, assign them to members and track what's done.",
+      },
       { property: "og:title", content: "Tasks — The Students Hub" },
-      { property: "og:description", content: "Create tasks, assign them to members and track completion." },
+      {
+        property: "og:description",
+        content: "Create tasks, assign them to members and track completion.",
+      },
     ],
   }),
   component: TasksPage,

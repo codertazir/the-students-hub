@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -96,7 +102,11 @@ export function ProjectDialog({ open, onOpenChange, actor, project, defaultMonth
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
             <Label>Name</Label>
-            <Input value={draft.name} onChange={(e) => patch({ name: e.target.value })} placeholder="Winter Showcase" />
+            <Input
+              value={draft.name}
+              onChange={(e) => patch({ name: e.target.value })}
+              placeholder="Winter Showcase"
+            />
           </div>
 
           <div className="space-y-1.5 sm:col-span-2">
@@ -111,7 +121,11 @@ export function ProjectDialog({ open, onOpenChange, actor, project, defaultMonth
 
           <div className="space-y-1.5">
             <Label>Month</Label>
-            <select className={select} value={draft.month} onChange={(e) => patch({ month: Number(e.target.value) })}>
+            <select
+              className={select}
+              value={draft.month}
+              onChange={(e) => patch({ month: Number(e.target.value) })}
+            >
               {db.planMonths.map((m) => (
                 <option key={m} value={m}>
                   {MONTH_NAMES[m]}
@@ -122,7 +136,11 @@ export function ProjectDialog({ open, onOpenChange, actor, project, defaultMonth
 
           <div className="space-y-1.5">
             <Label>Owner</Label>
-            <Input value={draft.owner ?? ""} onChange={(e) => patch({ owner: e.target.value })} placeholder="Media team" />
+            <Input
+              value={draft.owner ?? ""}
+              onChange={(e) => patch({ owner: e.target.value })}
+              placeholder="Media team"
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -157,7 +175,11 @@ export function ProjectDialog({ open, onOpenChange, actor, project, defaultMonth
 
           <div className="space-y-1.5">
             <Label>Start date</Label>
-            <Input type="date" value={draft.start} onChange={(e) => patch({ start: e.target.value })} />
+            <Input
+              type="date"
+              value={draft.start}
+              onChange={(e) => patch({ start: e.target.value })}
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -188,7 +210,10 @@ export function ProjectDialog({ open, onOpenChange, actor, project, defaultMonth
                 Keep progress in step with completed tasks, or set it manually.
               </p>
             </div>
-            <Switch checked={draft.autoProgress} onCheckedChange={(v) => patch({ autoProgress: v })} />
+            <Switch
+              checked={draft.autoProgress}
+              onCheckedChange={(v) => patch({ autoProgress: v })}
+            />
           </div>
 
           {!draft.autoProgress && (
@@ -199,7 +224,9 @@ export function ProjectDialog({ open, onOpenChange, actor, project, defaultMonth
                 min={0}
                 max={100}
                 value={draft.progress}
-                onChange={(e) => patch({ progress: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
+                onChange={(e) =>
+                  patch({ progress: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })
+                }
               />
             </div>
           )}

@@ -13,7 +13,10 @@ export const Route = createFileRoute("/")({
           "The home base for the students club: meeting notes, events, tasks and announcements in one clean workspace.",
       },
       { property: "og:title", content: "The Students Hub" },
-      { property: "og:description", content: "Meeting notes, events and tasks for the students club." },
+      {
+        property: "og:description",
+        content: "Meeting notes, events and tasks for the students club.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -36,7 +39,9 @@ const SCREENS = [
             className="fade-slide flex flex-col overflow-hidden rounded-lg border border-border bg-card"
             style={{ animationDelay: `${i * 70}ms` }}
           >
-            <div className="flex flex-1 items-center justify-center bg-primary-soft text-lg">{emoji}</div>
+            <div className="flex flex-1 items-center justify-center bg-primary-soft text-lg">
+              {emoji}
+            </div>
             <div className="space-y-1 p-1.5">
               <div className="h-1.5 w-4/5 rounded-full bg-foreground/15" />
               <div className="h-1 w-2/5 rounded-full bg-foreground/10" />
@@ -67,7 +72,10 @@ const SCREENS = [
             </span>
           </div>
         ))}
-        <div className="fade-slide space-y-1.5 rounded-lg border border-border bg-card p-2" style={{ animationDelay: "180ms" }}>
+        <div
+          className="fade-slide space-y-1.5 rounded-lg border border-border bg-card p-2"
+          style={{ animationDelay: "180ms" }}
+        >
           <div className="text-[8px] font-semibold text-muted-foreground">Theme vote</div>
           {[72, 41, 18].map((w, i) => (
             <div key={w} className="h-1.5 overflow-hidden rounded-full bg-secondary">
@@ -103,7 +111,11 @@ const SCREENS = [
             ) : (
               <Circle className="size-3 shrink-0 text-muted-foreground" />
             )}
-            <span className={`truncate text-[9px] ${row.done ? "text-muted-foreground line-through" : ""}`}>{row.t}</span>
+            <span
+              className={`truncate text-[9px] ${row.done ? "text-muted-foreground line-through" : ""}`}
+            >
+              {row.t}
+            </span>
           </div>
         ))}
       </div>
@@ -115,7 +127,9 @@ const SCREENS = [
     icon: Wallet,
     body: (
       <div className="flex h-full flex-col justify-center gap-3 rounded-lg border border-border bg-card p-4">
-        <span className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground">Club funds</span>
+        <span className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Club funds
+        </span>
         <span className="fade-slide h-6 w-24 rounded-md bg-primary/25" aria-hidden="true" />
         <div className="space-y-1.5">
           {[64, 38].map((w, i) => (

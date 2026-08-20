@@ -97,12 +97,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "The Students Hub" },
       {
         name: "description",
-        content: "The hub used for the students club — notes, events and announcements in one place.",
+        content:
+          "The hub used for the students club — notes, events and announcements in one place.",
       },
       { property: "og:title", content: "The Students Hub" },
       {
         property: "og:description",
-        content: "The hub used for the students club — notes, events and announcements in one place.",
+        content:
+          "The hub used for the students club — notes, events and announcements in one place.",
       },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "The Students Hub" },

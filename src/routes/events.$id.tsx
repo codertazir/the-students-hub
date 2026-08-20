@@ -19,7 +19,14 @@ import { toast } from "sonner";
 import { NoteBlocksEditor } from "@/components/NoteBlocksEditor";
 import { useAuth, useDB } from "@/lib/auth";
 import { track } from "@/lib/track";
-import { setDB, uid, type EventCard, type EventCardType, type NoteBlock, type NoteBlockKind } from "@/lib/store";
+import {
+  setDB,
+  uid,
+  type EventCard,
+  type EventCardType,
+  type NoteBlock,
+  type NoteBlockKind,
+} from "@/lib/store";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/students-hub-logo.png.asset.json";
 
@@ -36,7 +43,8 @@ export const Route = createFileRoute("/events/$id")({
 });
 
 const TYPING_TTL = 4000;
-const FIELD = "rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-ring";
+const FIELD =
+  "rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-ring";
 
 function EventDetailPage() {
   const { id } = Route.useParams();
@@ -83,7 +91,11 @@ function EventDetailPage() {
           className="hidden shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-secondary sm:flex"
           title={collapsed ? "Show cards panel" : "Collapse cards panel"}
         >
-          {collapsed ? <PanelRightOpen className="size-3.5" /> : <PanelRightClose className="size-3.5" />}
+          {collapsed ? (
+            <PanelRightOpen className="size-3.5" />
+          ) : (
+            <PanelRightClose className="size-3.5" />
+          )}
           {collapsed ? "Show cards" : "Focus notes"}
         </button>
       </header>
@@ -94,7 +106,12 @@ function EventDetailPage() {
           collapsed ? "lg:flex-row" : "lg:flex-row",
         )}
       >
-        <div className={cn("min-w-0 transition-all duration-300 ease-out", collapsed ? "lg:flex-1" : "lg:w-3/5")}>
+        <div
+          className={cn(
+            "min-w-0 transition-all duration-300 ease-out",
+            collapsed ? "lg:flex-1" : "lg:w-3/5",
+          )}
+        >
           <NotesPanel event={event} />
         </div>
         <div
@@ -128,7 +145,9 @@ function AdminEventMeta({ event }: { event: ReturnType<typeof useDB>["events"][n
             <input
               className={FIELD}
               value={event.title}
-              onChange={(e) => setDB((d) => void (d.events.find((x) => x.id === event.id)!.title = e.target.value))}
+              onChange={(e) =>
+                setDB((d) => void (d.events.find((x) => x.id === event.id)!.title = e.target.value))
+              }
             />
           </Labeled>
           <Labeled label="Number">
@@ -137,7 +156,11 @@ function AdminEventMeta({ event }: { event: ReturnType<typeof useDB>["events"][n
               className={FIELD}
               value={event.number}
               onChange={(e) =>
-                setDB((d) => void (d.events.find((x) => x.id === event.id)!.number = Number(e.target.value) || 0))
+                setDB(
+                  (d) =>
+                    void (d.events.find((x) => x.id === event.id)!.number =
+                      Number(e.target.value) || 0),
+                )
               }
             />
           </Labeled>
@@ -145,35 +168,55 @@ function AdminEventMeta({ event }: { event: ReturnType<typeof useDB>["events"][n
             <input
               className={FIELD}
               value={event.dateLabel}
-              onChange={(e) => setDB((d) => void (d.events.find((x) => x.id === event.id)!.dateLabel = e.target.value))}
+              onChange={(e) =>
+                setDB(
+                  (d) => void (d.events.find((x) => x.id === event.id)!.dateLabel = e.target.value),
+                )
+              }
             />
           </Labeled>
           <Labeled label="Date (yyyy-mm-dd)">
             <input
               className={FIELD}
               value={event.date}
-              onChange={(e) => setDB((d) => void (d.events.find((x) => x.id === event.id)!.date = e.target.value))}
+              onChange={(e) =>
+                setDB((d) => void (d.events.find((x) => x.id === event.id)!.date = e.target.value))
+              }
             />
           </Labeled>
           <Labeled label="Location">
             <input
               className={FIELD}
               value={event.location}
-              onChange={(e) => setDB((d) => void (d.events.find((x) => x.id === event.id)!.location = e.target.value))}
+              onChange={(e) =>
+                setDB(
+                  (d) => void (d.events.find((x) => x.id === event.id)!.location = e.target.value),
+                )
+              }
             />
           </Labeled>
           <Labeled label="Emoji">
             <input
               className={FIELD}
               value={event.previewEmoji}
-              onChange={(e) => setDB((d) => void (d.events.find((x) => x.id === event.id)!.previewEmoji = e.target.value))}
+              onChange={(e) =>
+                setDB(
+                  (d) =>
+                    void (d.events.find((x) => x.id === event.id)!.previewEmoji = e.target.value),
+                )
+              }
             />
           </Labeled>
           <label className="flex items-center gap-2 text-xs">
             <input
               type="checkbox"
               checked={event.completed}
-              onChange={(e) => setDB((d) => void (d.events.find((x) => x.id === event.id)!.completed = e.target.checked))}
+              onChange={(e) =>
+                setDB(
+                  (d) =>
+                    void (d.events.find((x) => x.id === event.id)!.completed = e.target.checked),
+                )
+              }
             />
             Completed
           </label>
@@ -208,7 +251,9 @@ function NotesPanel({ event }: { event: ReturnType<typeof useDB>["events"][numbe
         id: uid(),
         kind,
         content: kind === "divider" ? "" : "New content",
-        ...(kind === "input" ? { shared: "", allowAnonymous: true, mode: "live" as const, submissions: [] } : {}),
+        ...(kind === "input"
+          ? { shared: "", allowAnonymous: true, mode: "live" as const, submissions: [] }
+          : {}),
       });
     });
   };
@@ -298,7 +343,11 @@ function CardsPanel({ event }: { event: ReturnType<typeof useDB>["events"][numbe
       const ev = d.events.find((x) => x.id === event.id);
       if (!ev) return;
       const card: EventCard = { id: uid(), type, title: `New ${type}`, visible: true };
-      if (type === "poll") card.poll = { question: "New question", options: [{ id: uid(), label: "Option 1", votes: [] }] };
+      if (type === "poll")
+        card.poll = {
+          question: "New question",
+          options: [{ id: uid(), label: "Option 1", votes: [] }],
+        };
       if (type === "budget") card.budget = { total: 0, currency: "SAR", allocations: [] };
       if (type === "stats") card.stats = [{ id: uid(), label: "Metric", value: "0" }];
       if (type === "info") card.info = { body: "Details go here." };
@@ -315,7 +364,13 @@ function CardsPanel({ event }: { event: ReturnType<typeof useDB>["events"][numbe
         </div>
       )}
       {visibleCards.map((card, idx) => (
-        <CardBlock key={card.id} event={event} card={card} idx={event.cards.findIndex((c) => c.id === card.id)} total={event.cards.length} />
+        <CardBlock
+          key={card.id}
+          event={event}
+          card={card}
+          idx={event.cards.findIndex((c) => c.id === card.id)}
+          total={event.cards.length}
+        />
       ))}
       {isAdmin && (
         <div className="flex flex-wrap gap-2 rounded-2xl border border-dashed border-border p-3">
@@ -377,7 +432,12 @@ function CardBlock({
   };
 
   return (
-    <div className={cn("surface-card space-y-3 rounded-2xl border border-border p-4 transition-opacity", !card.visible && "opacity-60")}>
+    <div
+      className={cn(
+        "surface-card space-y-3 rounded-2xl border border-border p-4 transition-opacity",
+        !card.visible && "opacity-60",
+      )}
+    >
       <div className="flex items-center justify-between gap-2">
         {isAdmin ? (
           <input
@@ -390,12 +450,18 @@ function CardBlock({
         )}
         {isAdmin && (
           <div className="flex shrink-0 items-center gap-1">
-            <IconBtn onClick={() => move(-1)}><ChevronLeft className="size-3.5 -rotate-90" /></IconBtn>
-            <IconBtn onClick={() => move(1)}><ChevronRight className="size-3.5 -rotate-90" /></IconBtn>
+            <IconBtn onClick={() => move(-1)}>
+              <ChevronLeft className="size-3.5 -rotate-90" />
+            </IconBtn>
+            <IconBtn onClick={() => move(1)}>
+              <ChevronRight className="size-3.5 -rotate-90" />
+            </IconBtn>
             <IconBtn onClick={() => patchCard((c) => void (c.visible = !c.visible))}>
               {card.visible ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
             </IconBtn>
-            <IconBtn onClick={removeCard}><Trash2 className="size-3.5" /></IconBtn>
+            <IconBtn onClick={removeCard}>
+              <Trash2 className="size-3.5" />
+            </IconBtn>
           </div>
         )}
       </div>
@@ -409,7 +475,13 @@ function CardBlock({
   );
 }
 
-function PollCard({ event, card }: { event: ReturnType<typeof useDB>["events"][number]; card: EventCard }) {
+function PollCard({
+  event,
+  card,
+}: {
+  event: ReturnType<typeof useDB>["events"][number];
+  card: EventCard;
+}) {
   const { user } = useAuth();
   const isAdmin = !!user?.isAdmin;
   const poll = card.poll!;
@@ -449,7 +521,9 @@ function PollCard({ event, card }: { event: ReturnType<typeof useDB>["events"][n
           value={poll.question}
           onChange={(e) =>
             setDB((d) => {
-              const c = d.events.find((x) => x.id === event.id)?.cards.find((x) => x.id === card.id);
+              const c = d.events
+                .find((x) => x.id === event.id)
+                ?.cards.find((x) => x.id === card.id);
               if (c?.poll) c.poll.question = e.target.value;
             })
           }
@@ -470,17 +544,24 @@ function PollCard({ event, card }: { event: ReturnType<typeof useDB>["events"][n
                   mine ? "border-primary/50 bg-primary-soft" : "hover:bg-secondary",
                 )}
               >
-                <span className="absolute inset-y-0 left-0 bg-primary/15 transition-all duration-500" style={{ width: `${pct}%` }} />
+                <span
+                  className="absolute inset-y-0 left-0 bg-primary/15 transition-all duration-500"
+                  style={{ width: `${pct}%` }}
+                />
                 <span className="relative flex justify-between gap-2">
                   <span>{o.label}</span>
-                  <span className="text-muted-foreground">{pct}% · {o.votes.length}</span>
+                  <span className="text-muted-foreground">
+                    {pct}% · {o.votes.length}
+                  </span>
                 </span>
               </button>
               {isAdmin && (
                 <IconBtn
                   onClick={() =>
                     setDB((d) => {
-                      const c = d.events.find((x) => x.id === event.id)?.cards.find((x) => x.id === card.id);
+                      const c = d.events
+                        .find((x) => x.id === event.id)
+                        ?.cards.find((x) => x.id === card.id);
                       if (c?.poll) c.poll.options = c.poll.options.filter((x) => x.id !== o.id);
                     })
                   }
@@ -496,8 +577,14 @@ function PollCard({ event, card }: { event: ReturnType<typeof useDB>["events"][n
         <button
           onClick={() =>
             setDB((d) => {
-              const c = d.events.find((x) => x.id === event.id)?.cards.find((x) => x.id === card.id);
-              c?.poll?.options.push({ id: uid(), label: `Option ${c.poll.options.length + 1}`, votes: [] });
+              const c = d.events
+                .find((x) => x.id === event.id)
+                ?.cards.find((x) => x.id === card.id);
+              c?.poll?.options.push({
+                id: uid(),
+                label: `Option ${c.poll.options.length + 1}`,
+                votes: [],
+              });
             })
           }
           className="text-xs text-primary hover:underline"
@@ -509,7 +596,13 @@ function PollCard({ event, card }: { event: ReturnType<typeof useDB>["events"][n
   );
 }
 
-function BudgetCard({ event, card }: { event: ReturnType<typeof useDB>["events"][number]; card: EventCard }) {
+function BudgetCard({
+  event,
+  card,
+}: {
+  event: ReturnType<typeof useDB>["events"][number];
+  card: EventCard;
+}) {
   const { user } = useAuth();
   const isAdmin = !!user?.isAdmin;
   const budget = card.budget!;
@@ -526,7 +619,9 @@ function BudgetCard({ event, card }: { event: ReturnType<typeof useDB>["events"]
             value={budget.total}
             onChange={(e) =>
               setDB((d) => {
-                const c = d.events.find((x) => x.id === event.id)?.cards.find((x) => x.id === card.id);
+                const c = d.events
+                  .find((x) => x.id === event.id)
+                  ?.cards.find((x) => x.id === card.id);
                 if (c?.budget) c.budget.total = Number(e.target.value) || 0;
               })
             }
@@ -542,7 +637,8 @@ function BudgetCard({ event, card }: { event: ReturnType<typeof useDB>["events"]
       </div>
       <div className="space-y-1.5">
         {budget.allocations.map((a) => {
-          const pct = budget.total > 0 ? Math.min(100, Math.round((a.amount / budget.total) * 100)) : 0;
+          const pct =
+            budget.total > 0 ? Math.min(100, Math.round((a.amount / budget.total) * 100)) : 0;
           return (
             <div key={a.id} className="space-y-1">
               <div className="flex items-center justify-between text-xs">
@@ -552,7 +648,9 @@ function BudgetCard({ event, card }: { event: ReturnType<typeof useDB>["events"]
                     value={a.label}
                     onChange={(e) =>
                       setDB((d) => {
-                        const c = d.events.find((x) => x.id === event.id)?.cards.find((x) => x.id === card.id);
+                        const c = d.events
+                          .find((x) => x.id === event.id)
+                          ?.cards.find((x) => x.id === card.id);
                         const al = c?.budget?.allocations.find((x) => x.id === a.id);
                         if (al) al.label = e.target.value;
                       })
@@ -569,21 +667,30 @@ function BudgetCard({ event, card }: { event: ReturnType<typeof useDB>["events"]
                       value={a.amount}
                       onChange={(e) =>
                         setDB((d) => {
-                          const c = d.events.find((x) => x.id === event.id)?.cards.find((x) => x.id === card.id);
+                          const c = d.events
+                            .find((x) => x.id === event.id)
+                            ?.cards.find((x) => x.id === card.id);
                           const al = c?.budget?.allocations.find((x) => x.id === a.id);
                           if (al) al.amount = Number(e.target.value) || 0;
                         })
                       }
                     />
                   ) : (
-                    <span>{a.amount.toLocaleString()} {budget.currency}</span>
+                    <span>
+                      {a.amount.toLocaleString()} {budget.currency}
+                    </span>
                   )}
                   {isAdmin && (
                     <IconBtn
                       onClick={() =>
                         setDB((d) => {
-                          const c = d.events.find((x) => x.id === event.id)?.cards.find((x) => x.id === card.id);
-                          if (c?.budget) c.budget.allocations = c.budget.allocations.filter((x) => x.id !== a.id);
+                          const c = d.events
+                            .find((x) => x.id === event.id)
+                            ?.cards.find((x) => x.id === card.id);
+                          if (c?.budget)
+                            c.budget.allocations = c.budget.allocations.filter(
+                              (x) => x.id !== a.id,
+                            );
                         })
                       }
                     >
@@ -593,7 +700,10 @@ function BudgetCard({ event, card }: { event: ReturnType<typeof useDB>["events"]
                 </span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
-                <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} />
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-500"
+                  style={{ width: `${pct}%` }}
+                />
               </div>
             </div>
           );
@@ -603,7 +713,9 @@ function BudgetCard({ event, card }: { event: ReturnType<typeof useDB>["events"]
         <button
           onClick={() =>
             setDB((d) => {
-              const c = d.events.find((x) => x.id === event.id)?.cards.find((x) => x.id === card.id);
+              const c = d.events
+                .find((x) => x.id === event.id)
+                ?.cards.find((x) => x.id === card.id);
               c?.budget?.allocations.push({ id: uid(), label: "New item", amount: 0 });
             })
           }
@@ -616,7 +728,13 @@ function BudgetCard({ event, card }: { event: ReturnType<typeof useDB>["events"]
   );
 }
 
-function StatsCard({ event, card }: { event: ReturnType<typeof useDB>["events"][number]; card: EventCard }) {
+function StatsCard({
+  event,
+  card,
+}: {
+  event: ReturnType<typeof useDB>["events"][number];
+  card: EventCard;
+}) {
   const { user } = useAuth();
   const isAdmin = !!user?.isAdmin;
   const stats = card.stats!;
@@ -632,7 +750,9 @@ function StatsCard({ event, card }: { event: ReturnType<typeof useDB>["events"][
                   value={s.label}
                   onChange={(e) =>
                     setDB((d) => {
-                      const c = d.events.find((x) => x.id === event.id)?.cards.find((x) => x.id === card.id);
+                      const c = d.events
+                        .find((x) => x.id === event.id)
+                        ?.cards.find((x) => x.id === card.id);
                       const st = c?.stats?.find((x) => x.id === s.id);
                       if (st) st.label = e.target.value;
                     })
@@ -643,7 +763,9 @@ function StatsCard({ event, card }: { event: ReturnType<typeof useDB>["events"][
                   value={s.value}
                   onChange={(e) =>
                     setDB((d) => {
-                      const c = d.events.find((x) => x.id === event.id)?.cards.find((x) => x.id === card.id);
+                      const c = d.events
+                        .find((x) => x.id === event.id)
+                        ?.cards.find((x) => x.id === card.id);
                       const st = c?.stats?.find((x) => x.id === s.id);
                       if (st) st.value = e.target.value;
                     })
@@ -663,7 +785,9 @@ function StatsCard({ event, card }: { event: ReturnType<typeof useDB>["events"][
         <button
           onClick={() =>
             setDB((d) => {
-              const c = d.events.find((x) => x.id === event.id)?.cards.find((x) => x.id === card.id);
+              const c = d.events
+                .find((x) => x.id === event.id)
+                ?.cards.find((x) => x.id === card.id);
               c?.stats?.push({ id: uid(), label: "Metric", value: "0" });
             })
           }
@@ -676,7 +800,13 @@ function StatsCard({ event, card }: { event: ReturnType<typeof useDB>["events"][
   );
 }
 
-function InfoCard({ event, card }: { event: ReturnType<typeof useDB>["events"][number]; card: EventCard }) {
+function InfoCard({
+  event,
+  card,
+}: {
+  event: ReturnType<typeof useDB>["events"][number];
+  card: EventCard;
+}) {
   const { user } = useAuth();
   const isAdmin = !!user?.isAdmin;
   const info = card.info!;
@@ -697,7 +827,13 @@ function InfoCard({ event, card }: { event: ReturnType<typeof useDB>["events"][n
   );
 }
 
-function FolderCard({ event, card }: { event: ReturnType<typeof useDB>["events"][number]; card: EventCard }) {
+function FolderCard({
+  event,
+  card,
+}: {
+  event: ReturnType<typeof useDB>["events"][number];
+  card: EventCard;
+}) {
   const { user } = useAuth();
   if (!user) return null;
   const isAdmin = user.isAdmin;
@@ -707,9 +843,14 @@ function FolderCard({ event, card }: { event: ReturnType<typeof useDB>["events"]
   return (
     <div className="space-y-2">
       <div className="space-y-1">
-        {folder.files.length === 0 && <p className="text-xs text-muted-foreground">No files yet.</p>}
+        {folder.files.length === 0 && (
+          <p className="text-xs text-muted-foreground">No files yet.</p>
+        )}
         {folder.files.map((f) => (
-          <div key={f.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2 text-xs">
+          <div
+            key={f.id}
+            className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2 text-xs"
+          >
             <span className="truncate">
               {f.name} <span className="text-muted-foreground">· {f.by}</span>
             </span>
@@ -717,7 +858,9 @@ function FolderCard({ event, card }: { event: ReturnType<typeof useDB>["events"]
               <IconBtn
                 onClick={() =>
                   setDB((d) => {
-                    const c = d.events.find((x) => x.id === event.id)?.cards.find((x) => x.id === card.id);
+                    const c = d.events
+                      .find((x) => x.id === event.id)
+                      ?.cards.find((x) => x.id === card.id);
                     if (c?.folder) c.folder.files = c.folder.files.filter((x) => x.id !== f.id);
                   })
                 }
@@ -739,13 +882,25 @@ function FolderCard({ event, card }: { event: ReturnType<typeof useDB>["events"]
                 const file = e.target.files?.[0];
                 if (!file) return;
                 setDB((d) => {
-                  const c = d.events.find((x) => x.id === event.id)?.cards.find((x) => x.id === card.id);
-                  c?.folder?.files.push({ id: uid(), name: file.name, by: user.fullName || user.email, ts: Date.now() });
+                  const c = d.events
+                    .find((x) => x.id === event.id)
+                    ?.cards.find((x) => x.id === card.id);
+                  c?.folder?.files.push({
+                    id: uid(),
+                    name: file.name,
+                    by: user.fullName || user.email,
+                    ts: Date.now(),
+                  });
                 });
-                track("files", `uploaded "${file.name}" to ${card.title}`, `Event: ${event.title}`, {
-                  eventId: event.id,
-                  cardId: card.id,
-                });
+                track(
+                  "files",
+                  `uploaded "${file.name}" to ${card.title}`,
+                  `Event: ${event.title}`,
+                  {
+                    eventId: event.id,
+                    cardId: card.id,
+                  },
+                );
                 toast.success("File added.");
                 e.target.value = "";
               }}
@@ -763,7 +918,9 @@ function FolderCard({ event, card }: { event: ReturnType<typeof useDB>["events"]
               checked={folder.uploadsAllowed}
               onChange={(e) =>
                 setDB((d) => {
-                  const c = d.events.find((x) => x.id === event.id)?.cards.find((x) => x.id === card.id);
+                  const c = d.events
+                    .find((x) => x.id === event.id)
+                    ?.cards.find((x) => x.id === card.id);
                   if (c?.folder) c.folder.uploadsAllowed = e.target.checked;
                 })
               }
@@ -800,7 +957,9 @@ function CommentsBlock({ event }: { event: ReturnType<typeof useDB>["events"][nu
             <p className="mt-1">{c.text}</p>
           </div>
         ))}
-        {sorted.length === 0 && <p className="text-sm text-muted-foreground">Be the first to post.</p>}
+        {sorted.length === 0 && (
+          <p className="text-sm text-muted-foreground">Be the first to post.</p>
+        )}
       </div>
       <div className="flex flex-wrap gap-2">
         <input

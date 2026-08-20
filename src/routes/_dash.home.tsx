@@ -15,12 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth, useDB, ONLINE_WINDOW_MS } from "@/lib/auth";
-import {
-  setSuggestionMark,
-  visibleSuggestions,
-  type CTA,
-  type HomeCardId,
-} from "@/lib/store";
+import { setSuggestionMark, visibleSuggestions, type CTA, type HomeCardId } from "@/lib/store";
 import { TasksPanel } from "@/components/TasksPanel";
 import { cn } from "@/lib/utils";
 
@@ -28,9 +23,15 @@ export const Route = createFileRoute("/_dash/home")({
   head: () => ({
     meta: [
       { title: "Home — The Students Hub" },
-      { name: "description", content: "Announcements, this week's meeting, tasks, funds and upcoming club events." },
+      {
+        name: "description",
+        content: "Announcements, this week's meeting, tasks, funds and upcoming club events.",
+      },
       { property: "og:title", content: "Home — The Students Hub" },
-      { property: "og:description", content: "Announcements, meetings, tasks and upcoming club events." },
+      {
+        property: "og:description",
+        content: "Announcements, meetings, tasks and upcoming club events.",
+      },
     ],
   }),
   component: HomePage,
@@ -64,11 +65,17 @@ function HomePage() {
 
   const profileIncomplete = !user.avatar || !user.phone;
   const online = Object.entries(db.presence).filter(([, ts]) => Date.now() - ts < ONLINE_WINDOW_MS);
-  const upcoming = db.events.filter((e) => !e.completed).sort((a, b) => a.date.localeCompare(b.date));
+  const upcoming = db.events
+    .filter((e) => !e.completed)
+    .sort((a, b) => a.date.localeCompare(b.date));
   const past = db.events.filter((e) => e.completed);
   const shownEvents = allEvents ? upcoming : upcoming.slice(0, 3);
   const announcements = db.announcements
-    .filter((a) => !a.archived && (a.targets === undefined || a.targets === "all" || a.targets.includes(user.id)))
+    .filter(
+      (a) =>
+        !a.archived &&
+        (a.targets === undefined || a.targets === "all" || a.targets.includes(user.id)),
+    )
     .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.ts - a.ts);
   const latestNotes = [...db.notes].sort((a, b) => b.createdAt - a.createdAt).slice(0, 3);
 
@@ -139,14 +146,19 @@ function HomePage() {
             </li>
           ))}
           {suggestions.length === 0 && (
-            <p className="text-sm text-muted-foreground">You're all caught up — nothing suggested right now.</p>
+            <p className="text-sm text-muted-foreground">
+              You're all caught up — nothing suggested right now.
+            </p>
           )}
         </ul>
       </section>
     ),
     announcements: (
       <section
-        className={cn(cardShell, "overflow-hidden border-primary/25 bg-primary-soft/40 shadow-soft")}
+        className={cn(
+          cardShell,
+          "overflow-hidden border-primary/25 bg-primary-soft/40 shadow-soft",
+        )}
       >
         <h2 className="flex items-center gap-2 text-sm font-semibold">
           <Megaphone className="size-4 text-primary" /> Announcements
@@ -162,7 +174,9 @@ function HomePage() {
               {a.cta && <CtaLink cta={a.cta} />}
             </article>
           ))}
-          {announcements.length === 0 && <p className="text-sm text-muted-foreground">No announcements yet.</p>}
+          {announcements.length === 0 && (
+            <p className="text-sm text-muted-foreground">No announcements yet.</p>
+          )}
         </div>
       </section>
     ),
@@ -173,7 +187,9 @@ function HomePage() {
         </h2>
         <p className="mt-4 text-4xl font-semibold tracking-tight text-primary">
           {db.funds.total.toLocaleString()}
-          <span className="ml-1 text-base font-medium text-muted-foreground">{db.funds.currency}</span>
+          <span className="ml-1 text-base font-medium text-muted-foreground">
+            {db.funds.currency}
+          </span>
         </p>
         <p className="mt-2 text-xs text-muted-foreground">{db.funds.note}</p>
       </section>
@@ -227,7 +243,9 @@ function HomePage() {
               <p className="text-xs text-muted-foreground">{n.dateLabel}</p>
             </Link>
           ))}
-          {latestNotes.length === 0 && <p className="text-sm text-muted-foreground">No notes published yet.</p>}
+          {latestNotes.length === 0 && (
+            <p className="text-sm text-muted-foreground">No notes published yet.</p>
+          )}
         </div>
       </section>
     ),
@@ -250,7 +268,9 @@ function HomePage() {
               </p>
             </Link>
           ))}
-          {upcoming.length === 0 && <p className="text-sm text-muted-foreground">No events scheduled.</p>}
+          {upcoming.length === 0 && (
+            <p className="text-sm text-muted-foreground">No events scheduled.</p>
+          )}
         </div>
         {upcoming.length > 3 && (
           <button
@@ -266,7 +286,12 @@ function HomePage() {
               onClick={() => setShowPastEvents((v) => !v)}
               className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              <ChevronDown className={cn("size-3.5 transition-transform duration-300", showPastEvents && "rotate-180")} />
+              <ChevronDown
+                className={cn(
+                  "size-3.5 transition-transform duration-300",
+                  showPastEvents && "rotate-180",
+                )}
+              />
               Completed events ({past.length})
             </button>
             {showPastEvents && (
@@ -296,7 +321,9 @@ function HomePage() {
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
           Welcome back, {user.fullName?.split(" ")[0] || "member"}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">Here's everything happening in the club this week.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Here's everything happening in the club this week.
+        </p>
       </header>
 
       <div className="columns-1 gap-5 lg:columns-2">
@@ -349,7 +376,9 @@ function HomePage() {
                   </span>
                 );
               })}
-              {online.length === 0 && <p className="text-sm text-muted-foreground">Nobody online right now.</p>}
+              {online.length === 0 && (
+                <p className="text-sm text-muted-foreground">Nobody online right now.</p>
+              )}
             </div>
           </section>
 

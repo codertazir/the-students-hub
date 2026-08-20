@@ -12,9 +12,15 @@ export const Route = createFileRoute("/log-in")({
   head: () => ({
     meta: [
       { title: "Sign in — The Students Hub" },
-      { name: "description", content: "Sign in to The Students Hub with your school email to reach the club dashboard." },
+      {
+        name: "description",
+        content: "Sign in to The Students Hub with your school email to reach the club dashboard.",
+      },
       { property: "og:title", content: "Sign in — The Students Hub" },
-      { property: "og:description", content: "Sign in with your school email to reach the club dashboard." },
+      {
+        property: "og:description",
+        content: "Sign in with your school email to reach the club dashboard.",
+      },
     ],
   }),
   component: LoginPage,
@@ -88,7 +94,8 @@ function LoginPage() {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Signing in as <span className="font-medium text-foreground">{email || `you${EMAIL_DOMAIN}`}</span>
+                Signing in as{" "}
+                <span className="font-medium text-foreground">{email || `you${EMAIL_DOMAIN}`}</span>
               </p>
             </div>
 

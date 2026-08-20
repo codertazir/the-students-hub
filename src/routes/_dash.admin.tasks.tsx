@@ -23,7 +23,10 @@ function AdminTasksPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Tasks" description="Create assignments, manage member tasks and review completed work." />
+      <PageHeader
+        title="Tasks"
+        description="Create assignments, manage member tasks and review completed work."
+      />
       <section className="surface-card rise-in p-5">
         <TasksPanel limit={200} />
       </section>

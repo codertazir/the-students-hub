@@ -11,7 +11,10 @@ export const Route = createFileRoute("/_dash/admin/home")({
   head: () => ({
     meta: [
       { title: "Home layout — Admin — The Students Hub" },
-      { name: "description", content: "Choose which cards appear on the member home page and in what order." },
+      {
+        name: "description",
+        content: "Choose which cards appear on the member home page and in what order.",
+      },
       { property: "og:title", content: "Home layout — Admin" },
       { property: "og:description", content: "Reorder and hide home page cards for every member." },
     ],
@@ -73,8 +76,16 @@ function HomeLayoutPage() {
               key={card.id}
               className="flex items-center gap-3 rounded-xl bg-secondary/50 p-3 transition-colors hover:bg-secondary/70"
             >
-              <span className="w-6 text-center text-xs font-semibold text-muted-foreground">{i + 1}</span>
-              <p className={card.visible ? "flex-1 font-medium" : "flex-1 font-medium text-muted-foreground line-through"}>
+              <span className="w-6 text-center text-xs font-semibold text-muted-foreground">
+                {i + 1}
+              </span>
+              <p
+                className={
+                  card.visible
+                    ? "flex-1 font-medium"
+                    : "flex-1 font-medium text-muted-foreground line-through"
+                }
+              >
                 {HOME_CARD_LABELS[card.id]}
               </p>
               <button

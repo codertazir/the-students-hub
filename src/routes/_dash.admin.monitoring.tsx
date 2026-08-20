@@ -12,9 +12,15 @@ export const Route = createFileRoute("/_dash/admin/monitoring")({
   head: () => ({
     meta: [
       { title: "Monitoring — Admin — The Students Hub" },
-      { name: "description", content: "Security monitoring: sign-ins, activity and online members." },
+      {
+        name: "description",
+        content: "Security monitoring: sign-ins, activity and online members.",
+      },
       { property: "og:title", content: "Monitoring — Admin" },
-      { property: "og:description", content: "One unified activity log with filters and live presence." },
+      {
+        property: "og:description",
+        content: "One unified activity log with filters and live presence.",
+      },
     ],
   }),
   component: MonitoringPage,
@@ -48,7 +54,11 @@ const FILTERS: { id: string; label: string; match: (e: Entry) => boolean }[] = [
   { id: "suggestions", label: "Suggestions", match: (e) => e.area === "suggestions" },
   { id: "announcements", label: "Announcements", match: (e) => e.area === "announcements" },
   { id: "notifications", label: "Notifications", match: (e) => e.area === "notifications" },
-  { id: "comments", label: "Comments", match: (e) => e.area === "comments" || /comment|repl(y|ied)/i.test(e.action) },
+  {
+    id: "comments",
+    label: "Comments",
+    match: (e) => e.area === "comments" || /comment|repl(y|ied)/i.test(e.action),
+  },
   { id: "files", label: "Files", match: (e) => e.area === "files" },
   { id: "admin", label: "Admin actions", match: (e) => e.area === "admin" },
   {
@@ -179,7 +189,9 @@ function MonitoringPage() {
               <span className="size-1.5 rounded-full bg-primary" /> {u.displayName}
             </span>
           ))}
-          {online.length === 0 && <p className="text-sm text-muted-foreground">No one is online right now.</p>}
+          {online.length === 0 && (
+            <p className="text-sm text-muted-foreground">No one is online right now.</p>
+          )}
         </div>
       </section>
 
@@ -233,12 +245,20 @@ function MonitoringPage() {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                {[e.detail, e.ipAddress, e.browser && e.os ? `${e.browser} on ${e.os}` : null, e.deviceType]
+                {[
+                  e.detail,
+                  e.ipAddress,
+                  e.browser && e.os ? `${e.browser} on ${e.os}` : null,
+                  e.deviceType,
+                ]
                   .filter(Boolean)
                   .join(" · ") || "—"}
               </p>
               {e.metadata && (
-                <p className="truncate font-mono text-[11px] text-muted-foreground" title={e.metadata}>
+                <p
+                  className="truncate font-mono text-[11px] text-muted-foreground"
+                  title={e.metadata}
+                >
                   {e.metadata}
                 </p>
               )}

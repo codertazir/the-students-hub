@@ -83,7 +83,11 @@ const priorityTone: Record<string, string> = {
 };
 
 function Pill({ tone, children }: { tone: string; children: React.ReactNode }) {
-  return <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium ${tone}`}>{children}</span>;
+  return (
+    <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium ${tone}`}>
+      {children}
+    </span>
+  );
 }
 
 function MasterPlanPage() {
@@ -97,7 +101,11 @@ function MasterPlanPage() {
   const [sort, setSort] = useState<SortKey>("manual");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [adminTasksOpen, setAdminTasksOpen] = useState(false);
-  const [projectDialog, setProjectDialog] = useState<{ open: boolean; project: PlanProject | null; month: number }>({
+  const [projectDialog, setProjectDialog] = useState<{
+    open: boolean;
+    project: PlanProject | null;
+    month: number;
+  }>({
     open: false,
     project: null,
     month: 0,
@@ -129,7 +137,8 @@ function MasterPlanPage() {
     return [...filtered].sort((a, b) => {
       if (sort === "name") return a.name.localeCompare(b.name);
       if (sort === "start") return (a.start || "9999").localeCompare(b.start || "9999");
-      if (sort === "priority") return (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9);
+      if (sort === "priority")
+        return (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9);
       if (sort === "progress") return b.progress - a.progress;
       return a.status.localeCompare(b.status);
     });
@@ -153,9 +162,12 @@ function MasterPlanPage() {
             <ArrowLeft className="size-3.5" /> Back to hub
           </Link>
           <div className="min-w-0">
-            <h1 className="truncate text-lg font-semibold tracking-tight sm:text-xl">Master Plan</h1>
+            <h1 className="truncate text-lg font-semibold tracking-tight sm:text-xl">
+              Master Plan
+            </h1>
             <p className="truncate text-xs text-muted-foreground">
-              {totalProjects} project{totalProjects === 1 ? "" : "s"} · {doneTasks}/{totalTasks} tasks done
+              {totalProjects} project{totalProjects === 1 ? "" : "s"} · {doneTasks}/{totalTasks}{" "}
+              tasks done
             </p>
           </div>
 
@@ -169,7 +181,11 @@ function MasterPlanPage() {
                 className="h-9 w-48 pl-8 text-xs"
               />
             </div>
-            <select className={selectClass} value={status} onChange={(e) => setStatus(e.target.value)}>
+            <select
+              className={selectClass}
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
               <option value="all">Any status</option>
               {PLAN_STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -177,7 +193,11 @@ function MasterPlanPage() {
                 </option>
               ))}
             </select>
-            <select className={selectClass} value={priority} onChange={(e) => setPriority(e.target.value)}>
+            <select
+              className={selectClass}
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+            >
               <option value="all">Any priority</option>
               {PLAN_PRIORITIES.map((p) => (
                 <option key={p} value={p}>
@@ -185,7 +205,11 @@ function MasterPlanPage() {
                 </option>
               ))}
             </select>
-            <select className={selectClass} value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+            <select
+              className={selectClass}
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+            >
               <option value="manual">Custom order</option>
               <option value="name">Name</option>
               <option value="start">Start date</option>
@@ -195,10 +219,20 @@ function MasterPlanPage() {
             </select>
             {isAdmin && (
               <>
-                <Button variant="outline" size="sm" className="h-9 rounded-full" onClick={() => setAdminTasksOpen(true)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-full"
+                  onClick={() => setAdminTasksOpen(true)}
+                >
                   All tasks
                 </Button>
-                <Button variant="outline" size="sm" className="h-9 rounded-full" onClick={() => setSettingsOpen(true)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-full"
+                  onClick={() => setSettingsOpen(true)}
+                >
                   <Settings2 className="mr-1.5 size-3.5" /> Layout
                 </Button>
               </>
@@ -213,7 +247,9 @@ function MasterPlanPage() {
           return (
             <section key={month} className="rise-in">
               <div className="mb-3 flex items-center gap-3">
-                <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{MONTH_NAMES[month]}</h2>
+                <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                  {MONTH_NAMES[month]}
+                </h2>
                 <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                   {rows.length} row{rows.length === 1 ? "" : "s"}
                 </span>
@@ -294,7 +330,9 @@ function MasterPlanPage() {
                                   className={selectClass}
                                   title="Move to month"
                                   value={project.month}
-                                  onChange={(e) => moveProjectToMonth(project.id, Number(e.target.value))}
+                                  onChange={(e) =>
+                                    moveProjectToMonth(project.id, Number(e.target.value))
+                                  }
                                 >
                                   {db.planMonths.map((m) => (
                                     <option key={m} value={m}>
@@ -342,7 +380,9 @@ function MasterPlanPage() {
         defaultMonth={projectDialog.month}
       />
       {isAdmin && <PlanSettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />}
-      {isAdmin && <AdminTasksSheet open={adminTasksOpen} onOpenChange={setAdminTasksOpen} actor={actor} />}
+      {isAdmin && (
+        <AdminTasksSheet open={adminTasksOpen} onOpenChange={setAdminTasksOpen} actor={actor} />
+      )}
     </div>
   );
 }
@@ -377,9 +417,15 @@ function Cell({
         </div>
       );
     case "status":
-      return <Pill tone={statusTone[project.status] ?? ""}>{PLAN_STATUS_LABELS[project.status]}</Pill>;
+      return (
+        <Pill tone={statusTone[project.status] ?? ""}>{PLAN_STATUS_LABELS[project.status]}</Pill>
+      );
     case "priority":
-      return <Pill tone={priorityTone[project.priority] ?? ""}>{PLAN_PRIORITY_LABELS[project.priority]}</Pill>;
+      return (
+        <Pill tone={priorityTone[project.priority] ?? ""}>
+          {PLAN_PRIORITY_LABELS[project.priority]}
+        </Pill>
+      );
     case "event": {
       const event = project.eventId ? db.events.find((e) => e.id === project.eventId) : null;
       if (!event)
@@ -395,7 +441,9 @@ function Cell({
       );
     }
     case "start":
-      return <span className="whitespace-nowrap text-muted-foreground">{project.start || "—"}</span>;
+      return (
+        <span className="whitespace-nowrap text-muted-foreground">{project.start || "—"}</span>
+      );
     case "end":
       return <span className="whitespace-nowrap text-muted-foreground">{project.end || "—"}</span>;
     case "owner":

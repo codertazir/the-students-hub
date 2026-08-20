@@ -13,7 +13,8 @@ export const Route = createFileRoute("/terms")({
       { property: "og:title", content: "Terms and Conditions — The Students Hub" },
       {
         property: "og:description",
-        content: "Plain-language terms covering accounts, contributions, login metadata and anonymous mode.",
+        content:
+          "Plain-language terms covering accounts, contributions, login metadata and anonymous mode.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -91,7 +92,9 @@ function TermsPage() {
               <ScrollText className="size-5" />
             </span>
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Terms and Conditions</h1>
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                Terms and Conditions
+              </h1>
               <p className="text-sm text-muted-foreground">
                 Plain language, no small print — here is how The Students Hub works.
               </p>
@@ -112,7 +115,8 @@ function TermsPage() {
           </div>
 
           <p className="mt-10 rounded-2xl border border-border bg-secondary/60 p-4 text-xs leading-relaxed text-muted-foreground">
-            By signing in to The Students Hub you confirm that you have read and agree to these terms.
+            By signing in to The Students Hub you confirm that you have read and agree to these
+            terms.
           </p>
         </article>
       </div>

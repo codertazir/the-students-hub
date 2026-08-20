@@ -47,9 +47,21 @@ export function ResponseInput({
         )}
       </p>
       {mode === "submit" ? (
-        <SubmitResponse block={block} scope={scope} userId={userId} userName={userName} onPatch={onPatch} />
+        <SubmitResponse
+          block={block}
+          scope={scope}
+          userId={userId}
+          userName={userName}
+          onPatch={onPatch}
+        />
       ) : (
-        <LiveResponse block={block} scope={scope} userId={userId} userName={userName} onPatch={onPatch} />
+        <LiveResponse
+          block={block}
+          scope={scope}
+          userId={userId}
+          userName={userName}
+          onPatch={onPatch}
+        />
       )}
     </div>
   );
@@ -78,7 +90,9 @@ function LiveResponse({
   const others = useMemo(() => {
     const now = Date.now();
     return Object.entries(db.typing)
-      .filter(([key, v]) => key.startsWith(prefix) && key !== typingKey && now - v.ts < TYPING_WINDOW)
+      .filter(
+        ([key, v]) => key.startsWith(prefix) && key !== typingKey && now - v.ts < TYPING_WINDOW,
+      )
       .map(([, v]) => v.name);
   }, [db.typing, prefix, typingKey]);
 
@@ -127,8 +141,14 @@ function LiveResponse({
       />
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <div className="min-h-4">
-          {block.lastEditedAt ? <span>Saved · edited by {block.lastEditor ?? "someone"}</span> : <span>No responses yet</span>}
-          {others.length > 0 && <span className="ml-2 text-primary">{others.join(", ")} typing…</span>}
+          {block.lastEditedAt ? (
+            <span>Saved · edited by {block.lastEditor ?? "someone"}</span>
+          ) : (
+            <span>No responses yet</span>
+          )}
+          {others.length > 0 && (
+            <span className="ml-2 text-primary">{others.join(", ")} typing…</span>
+          )}
         </div>
         {block.allowAnonymous && (
           <label className="flex items-center gap-2">
@@ -175,7 +195,9 @@ function SubmitResponse({
       ts: Date.now(),
       anonymous: anon,
     };
-    const next = mine ? submissions.map((s) => (s.userId === userId ? entry : s)) : [...submissions, entry];
+    const next = mine
+      ? submissions.map((s) => (s.userId === userId ? entry : s))
+      : [...submissions, entry];
     onPatch({ submissions: next });
     track(
       scope.startsWith("event") ? "events" : "notes",
@@ -288,7 +310,10 @@ export function ResponseBlockSettings({
         className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs outline-none"
       />
       <label className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Switch checked={!!block.allowAnonymous} onCheckedChange={(v) => onPatch({ allowAnonymous: v })} />
+        <Switch
+          checked={!!block.allowAnonymous}
+          onCheckedChange={(v) => onPatch({ allowAnonymous: v })}
+        />
         Allow anonymous responses
       </label>
       {mode === "submit" && (
@@ -307,7 +332,9 @@ export function ResponseBlockSettings({
             />
             Members can read everyone's answers
           </label>
-          <p className="text-xs text-muted-foreground">{(block.submissions ?? []).length} submitted so far</p>
+          <p className="text-xs text-muted-foreground">
+            {(block.submissions ?? []).length} submitted so far
+          </p>
         </>
       )}
     </div>

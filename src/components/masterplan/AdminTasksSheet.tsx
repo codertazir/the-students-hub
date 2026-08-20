@@ -2,7 +2,13 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, ChevronDown, Circle, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useDB } from "@/lib/auth";
 import { TaskDialog } from "@/components/masterplan/TaskDialog";
 import { assigneeLabel, deleteTask, toggleTaskDone, type PlanActor } from "@/lib/masterplan";
@@ -40,7 +46,8 @@ export function AdminTasksSheet({ open, onOpenChange, actor }: Props) {
   const [editing, setEditing] = useState<PlanTask | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const projectName = (id: string) => db.planProjects.find((p) => p.id === id)?.name ?? "Unassigned project";
+  const projectName = (id: string) =>
+    db.planProjects.find((p) => p.id === id)?.name ?? "Unassigned project";
   const userName = (id: string) => {
     const u = db.users.find((x) => x.id === id);
     return u?.preferredName || u?.fullName || u?.email || "System";
@@ -66,9 +73,11 @@ export function AdminTasksSheet({ open, onOpenChange, actor }: Props) {
     });
     return [...list].sort((a, b) => {
       if (sort === "due") return (a.due || "9999").localeCompare(b.due || "9999");
-      if (sort === "priority") return (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9);
+      if (sort === "priority")
+        return (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9);
       if (sort === "status") return a.status.localeCompare(b.status);
-      if (sort === "project") return projectName(a.projectId).localeCompare(projectName(b.projectId));
+      if (sort === "project")
+        return projectName(a.projectId).localeCompare(projectName(b.projectId));
       return b.createdAt - a.createdAt;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -101,7 +110,11 @@ export function AdminTasksSheet({ open, onOpenChange, actor }: Props) {
                   </option>
                 ))}
               </select>
-              <select className={select} value={priority} onChange={(e) => setPriority(e.target.value)}>
+              <select
+                className={select}
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+              >
                 <option value="all">Any priority</option>
                 {PLAN_PRIORITIES.map((p) => (
                   <option key={p} value={p}>
@@ -109,7 +122,11 @@ export function AdminTasksSheet({ open, onOpenChange, actor }: Props) {
                   </option>
                 ))}
               </select>
-              <select className={select} value={assignee} onChange={(e) => setAssignee(e.target.value)}>
+              <select
+                className={select}
+                value={assignee}
+                onChange={(e) => setAssignee(e.target.value)}
+              >
                 <option value="all">Anyone</option>
                 <option value="everyone">Assigned to everyone</option>
                 {db.users.map((u) => (
@@ -118,7 +135,11 @@ export function AdminTasksSheet({ open, onOpenChange, actor }: Props) {
                   </option>
                 ))}
               </select>
-              <select className={select} value={project} onChange={(e) => setProject(e.target.value)}>
+              <select
+                className={select}
+                value={project}
+                onChange={(e) => setProject(e.target.value)}
+              >
                 <option value="all">All projects</option>
                 {db.planProjects.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -126,7 +147,11 @@ export function AdminTasksSheet({ open, onOpenChange, actor }: Props) {
                   </option>
                 ))}
               </select>
-              <select className={select} value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+              <select
+                className={select}
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortKey)}
+              >
                 <option value="created">Newest first</option>
                 <option value="due">Due date</option>
                 <option value="priority">Priority</option>
@@ -137,20 +162,32 @@ export function AdminTasksSheet({ open, onOpenChange, actor }: Props) {
           </div>
 
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4">
-            {rows.length === 0 && <p className="p-4 text-sm text-muted-foreground">No tasks match these filters.</p>}
+            {rows.length === 0 && (
+              <p className="p-4 text-sm text-muted-foreground">No tasks match these filters.</p>
+            )}
             {rows.map((t) => (
               <div key={t.id} className="rounded-xl border border-border bg-card p-3">
                 <div className="flex items-start gap-3">
-                  <button className="mt-0.5" onClick={() => toggleTaskDone(t.id, actor)} title="Toggle completion">
-                    {t.done ? <CheckCircle2 className="size-4 text-primary" /> : <Circle className="size-4 text-muted-foreground" />}
+                  <button
+                    className="mt-0.5"
+                    onClick={() => toggleTaskDone(t.id, actor)}
+                    title="Toggle completion"
+                  >
+                    {t.done ? (
+                      <CheckCircle2 className="size-4 text-primary" />
+                    ) : (
+                      <Circle className="size-4 text-muted-foreground" />
+                    )}
                   </button>
                   <div className="min-w-0 flex-1">
-                    <p className={`text-sm font-medium ${t.done ? "line-through text-muted-foreground" : ""}`}>
+                    <p
+                      className={`text-sm font-medium ${t.done ? "line-through text-muted-foreground" : ""}`}
+                    >
                       {t.title}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {projectName(t.projectId)} · {assigneeLabel(db, t)} · {PLAN_TASK_STATUS_LABELS[t.status]} ·{" "}
-                      {PLAN_PRIORITY_LABELS[t.priority]}
+                      {projectName(t.projectId)} · {assigneeLabel(db, t)} ·{" "}
+                      {PLAN_TASK_STATUS_LABELS[t.status]} · {PLAN_PRIORITY_LABELS[t.priority]}
                       {t.due ? ` · due ${t.due}` : ""}
                     </p>
                   </div>
@@ -177,7 +214,9 @@ export function AdminTasksSheet({ open, onOpenChange, actor }: Props) {
                       title="Details"
                       onClick={() => setExpanded((cur) => (cur === t.id ? null : t.id))}
                     >
-                      <ChevronDown className={`size-4 transition-transform ${expanded === t.id ? "rotate-180" : ""}`} />
+                      <ChevronDown
+                        className={`size-4 transition-transform ${expanded === t.id ? "rotate-180" : ""}`}
+                      />
                     </button>
                   </div>
                 </div>
@@ -190,7 +229,10 @@ export function AdminTasksSheet({ open, onOpenChange, actor }: Props) {
                       <p>Created {fmt(t.createdAt)}</p>
                       <p>Last updated {fmt(t.updatedAt)}</p>
                       <p>
-                        Completed {t.completedAt ? `${fmt(t.completedAt)} by ${userName(String(t.completedBy))}` : "—"}
+                        Completed{" "}
+                        {t.completedAt
+                          ? `${fmt(t.completedAt)} by ${userName(String(t.completedBy))}`
+                          : "—"}
                       </p>
                     </div>
                     <div>
@@ -212,7 +254,12 @@ export function AdminTasksSheet({ open, onOpenChange, actor }: Props) {
 
           <div className="border-t border-border px-5 py-3 text-xs text-muted-foreground">
             {rows.length} task{rows.length === 1 ? "" : "s"} shown
-            <Button variant="ghost" size="sm" className="float-right h-7 rounded-full" onClick={() => onOpenChange(false)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="float-right h-7 rounded-full"
+              onClick={() => onOpenChange(false)}
+            >
               Close
             </Button>
           </div>

@@ -25,7 +25,6 @@ export interface User {
   onboarded: boolean;
 }
 
-
 export interface LoginRecord {
   id: ID;
   userId: ID;
@@ -209,7 +208,11 @@ export interface EventCard {
   title: string;
   visible: boolean;
   poll?: { question: string; options: PollOption[] };
-  budget?: { total: number; currency: string; allocations: { id: ID; label: string; amount: number }[] };
+  budget?: {
+    total: number;
+    currency: string;
+    allocations: { id: ID; label: string; amount: number }[];
+  };
   stats?: { id: ID; label: string; value: string }[];
   info?: { body: string };
   folder?: { uploadsAllowed: boolean; files: EventFile[] };
@@ -243,13 +246,7 @@ export interface ClubEvent {
 
 /** Cards the admin can reorder / hide on the member home page. */
 export type HomeCardId =
-  | "announcements"
-  | "suggestions"
-  | "meeting"
-  | "tasks"
-  | "notes"
-  | "events"
-  | "funds";
+  "announcements" | "suggestions" | "meeting" | "tasks" | "notes" | "events" | "funds";
 
 export interface HomeCard {
   id: HomeCardId;
@@ -340,7 +337,13 @@ export const DEFAULT_PLAN_COLUMNS: PlanColumn[] = [
 ];
 
 export type PlanStatus = "planned" | "in_progress" | "blocked" | "done" | "cancelled";
-export const PLAN_STATUSES: PlanStatus[] = ["planned", "in_progress", "blocked", "done", "cancelled"];
+export const PLAN_STATUSES: PlanStatus[] = [
+  "planned",
+  "in_progress",
+  "blocked",
+  "done",
+  "cancelled",
+];
 export const PLAN_STATUS_LABELS: Record<PlanStatus, string> = {
   planned: "Planned",
   in_progress: "In progress",
@@ -461,14 +464,10 @@ export interface DB {
   sessionUserId: ID | null;
 }
 
-
 const KEY = "tsh.db.v2";
 export const ONLINE_WINDOW_MS = 45_000;
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
-
-
-
 
 const ACCENTS = ["#1d4ed8", "#0f766e", "#7c3aed", "#b45309", "#be123c", "#0369a1"];
 export const previewAccent = (i: number) => ACCENTS[i % ACCENTS.length]!;
@@ -520,7 +519,9 @@ const listeners = new Set<() => void>();
 /** Keeps the saved card order but drops unknown ids and appends new ones. */
 export function mergeHomeCards(saved?: HomeCard[]): HomeCard[] {
   const known = new Set(DEFAULT_HOME_CARDS.map((c) => c.id));
-  const kept = (saved ?? []).filter((c) => c && known.has(c.id)).map((c) => ({ id: c.id, visible: c.visible !== false }));
+  const kept = (saved ?? [])
+    .filter((c) => c && known.has(c.id))
+    .map((c) => ({ id: c.id, visible: c.visible !== false }));
   const seen = new Set(kept.map((c) => c.id));
   for (const c of DEFAULT_HOME_CARDS) if (!seen.has(c.id)) kept.push({ ...c });
   return kept;
@@ -556,8 +557,11 @@ function normalizeProject(p: Partial<PlanProject>, index: number): PlanProject {
     name: p.name ?? "Untitled project",
     description: p.description ?? "",
     status: PLAN_STATUSES.includes(p.status as PlanStatus) ? (p.status as PlanStatus) : "planned",
-    priority: PLAN_PRIORITIES.includes(p.priority as PlanPriority) ? (p.priority as PlanPriority) : "medium",
-    progress: typeof p.progress === "number" ? Math.max(0, Math.min(100, Math.round(p.progress))) : 0,
+    priority: PLAN_PRIORITIES.includes(p.priority as PlanPriority)
+      ? (p.priority as PlanPriority)
+      : "medium",
+    progress:
+      typeof p.progress === "number" ? Math.max(0, Math.min(100, Math.round(p.progress))) : 0,
     autoProgress: p.autoProgress !== false,
     eventId: p.eventId ?? null,
     start: p.start ?? "",
@@ -578,7 +582,9 @@ function normalizeTask(t: Partial<PlanTask>): PlanTask {
     description: t.description ?? "",
     assignees: t.assignees === "all" ? "all" : Array.isArray(t.assignees) ? t.assignees : [],
     due: t.due ?? "",
-    priority: PLAN_PRIORITIES.includes(t.priority as PlanPriority) ? (t.priority as PlanPriority) : "medium",
+    priority: PLAN_PRIORITIES.includes(t.priority as PlanPriority)
+      ? (t.priority as PlanPriority)
+      : "medium",
     status: PLAN_TASK_STATUSES.includes(t.status as PlanTaskStatus)
       ? (t.status as PlanTaskStatus)
       : done
@@ -727,7 +733,9 @@ export function subscribe(fn: () => void) {
 /* ---------------- derived helpers ---------------- */
 
 export function visibleTasks(db: DB, userId: ID) {
-  return db.tasks.filter((t) => t.assignedTo === "all" || t.assignedTo === userId || t.createdBy === userId);
+  return db.tasks.filter(
+    (t) => t.assignedTo === "all" || t.assignedTo === userId || t.createdBy === userId,
+  );
 }
 
 /** Every suggestion aimed at this member, regardless of their reaction. */
@@ -762,7 +770,6 @@ export function setSuggestionMark(suggestionId: ID, userId: ID, state: Suggestio
     }
   });
 }
-
 
 /** Admin breakdown for one suggestion card. */
 export function suggestionStats(db: DB, s: Suggestion) {
@@ -835,7 +842,11 @@ export function describeClient() {
         : /Firefox\//.test(ua)
           ? "Firefox"
           : "Unknown browser";
-  const device = /iPad|Tablet/.test(ua) ? "Tablet" : /Mobi|Android|iPhone/.test(ua) ? "Phone" : "Desktop";
+  const device = /iPad|Tablet/.test(ua)
+    ? "Tablet"
+    : /Mobi|Android|iPhone/.test(ua)
+      ? "Phone"
+      : "Desktop";
   return { ua, os, browser, device };
 }
 
@@ -849,9 +860,20 @@ export async function lookupIp() {
   }
 }
 
-export function logActivity(user: Pick<User, "id" | "email">, area: ActivityLog["area"], action: string) {
+export function logActivity(
+  user: Pick<User, "id" | "email">,
+  area: ActivityLog["area"],
+  action: string,
+) {
   setDB((db) => {
-    db.activity.unshift({ id: uid(), userId: user.id, email: user.email, area, action, ts: Date.now() });
+    db.activity.unshift({
+      id: uid(),
+      userId: user.id,
+      email: user.email,
+      area,
+      action,
+      ts: Date.now(),
+    });
     db.activity = db.activity.slice(0, 200);
   });
   // Persist it too, so history survives devices and shows the real IP/device.

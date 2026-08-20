@@ -61,9 +61,9 @@ function MembersPage() {
     const term = q.trim().toLowerCase();
     if (!term) return members;
     return members.filter((u) =>
-      [u.name, u.preferredName, u.email, u.phoneNumber].filter(Boolean).some((v) =>
-        String(v).toLowerCase().includes(term),
-      ),
+      [u.name, u.preferredName, u.email, u.phoneNumber]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(term)),
     );
   }, [members, q]);
 
@@ -91,9 +91,14 @@ function MembersPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Members" description="Search members, manage roles, and review individual activity." />
+      <PageHeader
+        title="Members"
+        description="Search members, manage roles, and review individual activity."
+      />
 
-      {error && <p className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}
+      {error && (
+        <p className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>
+      )}
 
       <Input
         value={q}
@@ -140,7 +145,9 @@ function MembersPage() {
                     <span
                       className={cn(
                         "rounded-full px-2 py-0.5 text-xs",
-                        u.role === "admin" ? "bg-primary-soft text-accent-foreground" : "bg-secondary text-muted-foreground",
+                        u.role === "admin"
+                          ? "bg-primary-soft text-accent-foreground"
+                          : "bg-secondary text-muted-foreground",
                       )}
                     >
                       {u.role === "admin" ? "Admin" : "Member"}
@@ -167,7 +174,11 @@ function MembersPage() {
                       className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs transition-colors hover:bg-secondary disabled:opacity-50"
                       onClick={() => void toggleRole(u)}
                     >
-                      {u.role === "admin" ? <ShieldOff className="size-3.5" /> : <ShieldCheck className="size-3.5" />}
+                      {u.role === "admin" ? (
+                        <ShieldOff className="size-3.5" />
+                      ) : (
+                        <ShieldCheck className="size-3.5" />
+                      )}
                       {u.role === "admin" ? "Demote" : "Promote"}
                     </button>
                   </td>
@@ -267,7 +278,9 @@ function MemberDetail({
             <li key={l.id} className="rounded-lg bg-secondary/50 px-3 py-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium">{AUTH_EVENT_LABEL[l.event] ?? l.event}</span>
-                <span className="text-xs text-muted-foreground">{new Date(l.timestamp).toLocaleString()}</span>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(l.timestamp).toLocaleString()}
+                </span>
               </div>
               <span className="block text-xs text-muted-foreground">
                 {[l.ipAddress, l.browser && l.os ? `${l.browser} on ${l.os}` : null, l.deviceType]
@@ -277,7 +290,9 @@ function MemberDetail({
               {l.detail && <span className="block text-xs text-muted-foreground">{l.detail}</span>}
             </li>
           ))}
-          {logins.length === 0 && <p className="text-xs text-muted-foreground">No logins recorded.</p>}
+          {logins.length === 0 && (
+            <p className="text-xs text-muted-foreground">No logins recorded.</p>
+          )}
         </ul>
       </section>
 
@@ -295,13 +310,20 @@ function MemberDetail({
                 </span>
               </div>
               <span className="block text-xs text-muted-foreground">
-                {[a.area, a.detail, a.ipAddress, a.browser && a.os ? `${a.browser} on ${a.os}` : null]
+                {[
+                  a.area,
+                  a.detail,
+                  a.ipAddress,
+                  a.browser && a.os ? `${a.browser} on ${a.os}` : null,
+                ]
                   .filter(Boolean)
                   .join(" · ")}
               </span>
             </li>
           ))}
-          {activity.length === 0 && <p className="text-xs text-muted-foreground">No activity recorded.</p>}
+          {activity.length === 0 && (
+            <p className="text-xs text-muted-foreground">No activity recorded.</p>
+          )}
         </ul>
       </section>
     </aside>
@@ -347,7 +369,13 @@ function PasswordViewer({ userId }: { userId: string }) {
       <p className="rounded-lg bg-background px-3 py-2 font-mono text-sm">
         {shown && password ? password : "••••••••"}
       </p>
-      <Button size="sm" variant="outline" className="w-full rounded-full" disabled={busy} onClick={reveal}>
+      <Button
+        size="sm"
+        variant="outline"
+        className="w-full rounded-full"
+        disabled={busy}
+        onClick={reveal}
+      >
         {shown ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
         {shown ? "Hide password" : busy ? "Checking…" : "Show password"}
       </Button>
@@ -366,7 +394,11 @@ function EmailEditor({ userId, email }: { userId: string; email: string }) {
       <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase text-muted-foreground">
         <Mail className="size-3.5" /> Email address
       </h3>
-      <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder="member@example.com" />
+      <Input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="member@example.com"
+      />
       <Button
         size="sm"
         className="w-full rounded-full"

@@ -47,7 +47,10 @@ function MeetingPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Weekly Meeting" description="Set the details for the weekly meeting card and its agenda." />
+      <PageHeader
+        title="Weekly Meeting"
+        description="Set the details for the weekly meeting card and its agenda."
+      />
 
       <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
         <section className="surface-card rise-in space-y-4 p-5">
@@ -65,16 +68,28 @@ function MeetingPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Date</Label>
-              <Input type="date" value={m.date} onChange={(e) => update({ date: e.target.value })} />
+              <Input
+                type="date"
+                value={m.date}
+                onChange={(e) => update({ date: e.target.value })}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Time</Label>
-              <Input type="time" value={m.time} onChange={(e) => update({ time: e.target.value })} />
+              <Input
+                type="time"
+                value={m.time}
+                onChange={(e) => update({ time: e.target.value })}
+              />
             </div>
           </div>
           <div className="space-y-1.5">
             <Label>Note</Label>
-            <Input value={m.note} onChange={(e) => update({ note: e.target.value })} placeholder="Bring your laptop, etc." />
+            <Input
+              value={m.note}
+              onChange={(e) => update({ note: e.target.value })}
+              placeholder="Bring your laptop, etc."
+            />
           </div>
 
           <div className="flex items-center justify-between rounded-xl bg-secondary/50 p-3">
@@ -93,19 +108,33 @@ function MeetingPage() {
                   <Input
                     value={item}
                     onChange={(e) =>
-                      setDB((d) => { d.meeting.agenda[i] = e.target.value; })
+                      setDB((d) => {
+                        d.meeting.agenda[i] = e.target.value;
+                      })
                     }
                     className="flex-1"
                   />
-                  <button className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary disabled:opacity-30" disabled={i === 0} onClick={() => moveItem(i, -1)}>
+                  <button
+                    className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary disabled:opacity-30"
+                    disabled={i === 0}
+                    onClick={() => moveItem(i, -1)}
+                  >
                     <ArrowUp className="size-4" />
                   </button>
-                  <button className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary disabled:opacity-30" disabled={i === m.agenda.length - 1} onClick={() => moveItem(i, 1)}>
+                  <button
+                    className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary disabled:opacity-30"
+                    disabled={i === m.agenda.length - 1}
+                    onClick={() => moveItem(i, 1)}
+                  >
                     <ArrowDown className="size-4" />
                   </button>
                   <button
                     className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() => setDB((d) => { d.meeting.agenda = d.meeting.agenda.filter((_, x) => x !== i); })}
+                    onClick={() =>
+                      setDB((d) => {
+                        d.meeting.agenda = d.meeting.agenda.filter((_, x) => x !== i);
+                      })
+                    }
                   >
                     <Trash2 className="size-4" />
                   </button>
@@ -113,7 +142,16 @@ function MeetingPage() {
               ))}
             </ul>
             <div className="flex gap-2">
-              <Input value={newItem} onChange={(e) => setNewItem(e.target.value)} placeholder="Add agenda item" onKeyDown={(e) => e.key === "Enter" && newItem.trim() && (setDB((d) => d.meeting.agenda.push(newItem.trim())), setNewItem(""))} />
+              <Input
+                value={newItem}
+                onChange={(e) => setNewItem(e.target.value)}
+                placeholder="Add agenda item"
+                onKeyDown={(e) =>
+                  e.key === "Enter" &&
+                  newItem.trim() &&
+                  (setDB((d) => d.meeting.agenda.push(newItem.trim())), setNewItem(""))
+                }
+              />
               <Button
                 variant="outline"
                 className="rounded-full"

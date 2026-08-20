@@ -16,7 +16,10 @@ const decoder = new TextDecoder();
 async function getKey() {
   const secret = process.env["SESSION_SECRET"];
   if (!secret) throw new Error("SESSION_SECRET is not configured");
-  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(`tsh-password-key:${secret}`));
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    encoder.encode(`tsh-password-key:${secret}`),
+  );
   return crypto.subtle.importKey("raw", digest, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
 }
 

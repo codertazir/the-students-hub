@@ -48,7 +48,13 @@ function NotesPage() {
         blocks: [
           { id: uid(), kind: "heading", content: "Agenda" },
           { id: uid(), kind: "text", content: "Write a short summary of what was discussed." },
-          { id: uid(), kind: "input", content: "Any thoughts or questions?", shared: "", allowAnonymous: true },
+          {
+            id: uid(),
+            kind: "input",
+            content: "Any thoughts or questions?",
+            shared: "",
+            allowAnonymous: true,
+          },
         ],
       });
     });
@@ -89,7 +95,9 @@ function NotesPage() {
           <p className="text-4xl">🗒️</p>
           <p className="text-sm font-medium">No notes yet</p>
           <p className="text-xs text-muted-foreground">
-            {user.isAdmin ? "Create the first meeting note to get started." : "Check back after the next meeting."}
+            {user.isAdmin
+              ? "Create the first meeting note to get started."
+              : "Check back after the next meeting."}
           </p>
         </div>
       ) : (

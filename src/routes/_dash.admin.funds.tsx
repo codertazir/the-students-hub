@@ -27,9 +27,12 @@ function FundsPage() {
   if (!user) return null;
   if (!user.isAdmin) return <AdminOnly />;
 
-  const update = (patch: Partial<typeof f>) => setDB((d) => Object.assign(d.funds, patch, { updatedAt: Date.now() }));
+  const update = (patch: Partial<typeof f>) =>
+    setDB((d) => Object.assign(d.funds, patch, { updatedAt: Date.now() }));
 
-  const formatted = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(f.total || 0);
+  const formatted = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(
+    f.total || 0,
+  );
 
   return (
     <div className="space-y-6">
@@ -43,11 +46,19 @@ function FundsPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Label</Label>
-              <Input value={f.label} onChange={(e) => update({ label: e.target.value })} placeholder="Club Funds" />
+              <Input
+                value={f.label}
+                onChange={(e) => update({ label: e.target.value })}
+                placeholder="Club Funds"
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Currency</Label>
-              <Input value={f.currency} onChange={(e) => update({ currency: e.target.value })} placeholder="USD" />
+              <Input
+                value={f.currency}
+                onChange={(e) => update({ currency: e.target.value })}
+                placeholder="USD"
+              />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label>Total amount</Label>
@@ -59,7 +70,11 @@ function FundsPage() {
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label>Note</Label>
-              <Input value={f.note} onChange={(e) => update({ note: e.target.value })} placeholder="Reserved for spring trip" />
+              <Input
+                value={f.note}
+                onChange={(e) => update({ note: e.target.value })}
+                placeholder="Reserved for spring trip"
+              />
             </div>
           </div>
         </section>
@@ -70,10 +85,11 @@ function FundsPage() {
             {f.currency} {formatted}
           </p>
           {f.note && <p className="mt-2 text-sm opacity-90">{f.note}</p>}
-          <p className="mt-3 text-xs opacity-70">Updated {new Date(f.updatedAt).toLocaleString()}</p>
+          <p className="mt-3 text-xs opacity-70">
+            Updated {new Date(f.updatedAt).toLocaleString()}
+          </p>
         </section>
       </div>
-
     </div>
   );
 }

@@ -28,7 +28,12 @@ export function OnboardingDialog() {
         >
           <div className="space-y-1.5">
             <Label htmlFor="fullName">Full name</Label>
-            <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Sara Al-Harbi" />
+            <Input
+              id="fullName"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Sara Al-Harbi"
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="dob">Date of birth</Label>
