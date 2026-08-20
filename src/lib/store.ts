@@ -467,10 +467,8 @@ export const ONLINE_WINDOW_MS = 45_000;
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
-const day = 86_400_000;
-const iso = (offset: number) => new Date(Date.now() + offset * day).toISOString().slice(0, 10);
-const pretty = (offset: number, time: string) =>
-  `${new Date(Date.now() + offset * day).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })} · ${time}`;
+
+
 
 const ACCENTS = ["#1d4ed8", "#0f766e", "#7c3aed", "#b45309", "#be123c", "#0369a1"];
 export const previewAccent = (i: number) => ACCENTS[i % ACCENTS.length]!;
