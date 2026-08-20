@@ -20,42 +20,114 @@ export const Route = createFileRoute("/_dash/admin/monitoring")({
   component: MonitoringPage,
 });
 
-const EVENT_TONE: Record<string, string> = {
-  sign_in: "bg-primary-soft text-accent-foreground",
-  account_created: "bg-primary-soft text-accent-foreground",
-  sign_out: "bg-secondary text-muted-foreground",
-  password_change: "bg-secondary text-foreground",
-  failed_login: "bg-destructive/15 text-destructive",
+type Entry = {
+  id: string;
+  ts: string;
+  area: string;
+  kind: string;
+  name: string | null;
+  email: string;
+  action: string;
+  detail: string | null;
+  ipAddress: string | null;
+  browser: string | null;
+  os: string | null;
+  deviceType: string | null;
+  metadata: string | null;
+  authEvent?: string;
 };
+
+const FILTERS: { id: string; label: string; match: (e: Entry) => boolean }[] = [
+  { id: "all", label: "All activities", match: () => true },
+  { id: "auth", label: "Login activity", match: (e) => e.kind === "auth" },
+  { id: "account", label: "Account changes", match: (e) => e.area === "account" },
+  { id: "notes", label: "Notes", match: (e) => e.area === "notes" },
+  { id: "events", label: "Events", match: (e) => e.area === "events" },
+  { id: "tasks", label: "Tasks", match: (e) => e.area === "tasks" },
+  { id: "polls", label: "Polls", match: (e) => e.area === "polls" },
+  { id: "suggestions", label: "Suggestions", match: (e) => e.area === "suggestions" },
+  { id: "announcements", label: "Announcements", match: (e) => e.area === "announcements" },
+  { id: "notifications", label: "Notifications", match: (e) => e.area === "notifications" },
+  { id: "comments", label: "Comments", match: (e) => e.area === "comments" || /comment|repl(y|ied)/i.test(e.action) },
+  { id: "files", label: "Files", match: (e) => e.area === "files" },
+  { id: "admin", label: "Admin actions", match: (e) => e.area === "admin" },
+  {
+    id: "other",
+    label: "Other",
+    match: (e) =>
+      ![
+        "auth",
+        "account",
+        "notes",
+        "events",
+        "tasks",
+        "polls",
+        "suggestions",
+        "announcements",
+        "notifications",
+        "comments",
+        "files",
+        "admin",
+      ].includes(e.area),
+  },
+];
 
 function MonitoringPage() {
   const { user } = useAuth();
   const isAdmin = Boolean(user?.isAdmin);
   const { data, error } = useMonitoring(isAdmin);
+  const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
-  const [aq, setAq] = useState("");
 
-  const logins = useMemo(() => {
-    const rows = data?.logins ?? [];
+  const entries = useMemo<Entry[]>(() => {
+    const fromAuth: Entry[] = (data?.logins ?? []).map((l) => ({
+      id: `login-${l.id}`,
+      ts: l.timestamp,
+      area: "auth",
+      kind: "auth",
+      name: l.name,
+      email: l.email,
+      action: AUTH_EVENT_LABEL[l.event] ?? l.event,
+      detail: l.detail,
+      ipAddress: l.ipAddress,
+      browser: l.browser,
+      os: l.os,
+      deviceType: l.deviceType ?? l.device,
+      metadata: l.sessionId ? `session ${l.sessionId.slice(0, 8)}` : null,
+      authEvent: l.event,
+    }));
+    const fromActivity: Entry[] = (data?.activity ?? [])
+      // Auth events already arrive through the login feed — avoid duplicates.
+      .filter((a) => a.area !== "auth")
+      .map((a) => ({
+        id: `act-${a.id}`,
+        ts: a.ts,
+        area: a.area,
+        kind: a.area,
+        name: a.name,
+        email: a.email,
+        action: a.action,
+        detail: a.detail,
+        ipAddress: a.ipAddress,
+        browser: a.browser,
+        os: a.os,
+        deviceType: a.deviceType,
+        metadata: a.metadata,
+      }));
+    return [...fromAuth, ...fromActivity].sort((x, y) => y.ts.localeCompare(x.ts));
+  }, [data?.logins, data?.activity]);
+
+  const active = FILTERS.find((f) => f.id === filter) ?? FILTERS[0]!;
+  const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    if (!term) return rows;
-    return rows.filter((l) =>
-      [l.email, l.name, l.ipAddress, l.browser, l.os, l.deviceType, l.event]
+    return entries.filter((e) => {
+      if (!active.match(e)) return false;
+      if (!term) return true;
+      return [e.email, e.name, e.action, e.area, e.detail, e.ipAddress, e.browser, e.os]
         .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(term)),
-    );
-  }, [data?.logins, q]);
-
-  const activity = useMemo(() => {
-    const rows = data?.activity ?? [];
-    const term = aq.trim().toLowerCase();
-    if (!term) return rows;
-    return rows.filter((a) =>
-      [a.email, a.name, a.action, a.area, a.detail, a.ipAddress]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(term)),
-    );
-  }, [data?.activity, aq]);
+        .some((v) => String(v).toLowerCase().includes(term));
+    });
+  }, [entries, active, q]);
 
   if (!user) return null;
   if (!isAdmin) return <AdminOnly />;
@@ -63,26 +135,23 @@ function MonitoringPage() {
   const users = data?.users ?? [];
   const online = users.filter((u) => isOnline(u.lastActiveAt));
   const startOfDay = new Date().setHours(0, 0, 0, 0);
-  const signInsToday = (data?.logins ?? []).filter(
-    (l) => l.event === "sign_in" && new Date(l.timestamp).getTime() >= startOfDay,
-  ).length;
-  const failedToday = (data?.logins ?? []).filter(
-    (l) => l.event === "failed_login" && new Date(l.timestamp).getTime() >= startOfDay,
-  ).length;
+  const todays = entries.filter((e) => new Date(e.ts).getTime() >= startOfDay);
+  const signInsToday = todays.filter((e) => e.authEvent === "sign_in").length;
+  const failedToday = todays.filter((e) => e.authEvent === "failed_login").length;
 
   const stats = [
     { label: "Members", value: users.length, icon: Users },
     { label: "Sign-ins today", value: signInsToday, icon: KeyRound },
     { label: "Failed logins today", value: failedToday, icon: ShieldAlert },
     { label: "Online now", value: online.length, icon: Activity },
-    { label: "Activity events", value: data?.activity.length ?? 0, icon: Activity },
+    { label: "Activity events", value: entries.length, icon: Activity },
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Monitoring"
-        description="Live security overview straight from the database — sign-ins, activity and who's online."
+        description="Live security overview straight from the database — one activity log covering sign-ins and every tracked action."
       />
 
       {error && (
@@ -114,107 +183,70 @@ function MonitoringPage() {
         </div>
       </section>
 
-      <section className="surface-card rise-in space-y-3 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold">Login log ({data?.logins.length ?? 0})</h2>
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search name, email, IP, event…"
-            className="w-64"
-          />
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary/60 text-left text-xs text-muted-foreground">
-              <tr>
-                {["Event", "Member", "Email", "Timestamp", "IP address", "Device", "Browser / OS", "Session", "Details", "User agent"].map(
-                  (h) => (
-                    <th key={h} className="whitespace-nowrap px-4 py-3">
-                      {h}
-                    </th>
-                  ),
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {logins.map((l) => (
-                <tr key={l.id} className="border-t border-border">
-                  <td className="px-4 py-3">
-                    <span className={cn("whitespace-nowrap rounded-full px-2 py-0.5 text-xs", EVENT_TONE[l.event] ?? "bg-secondary")}>
-                      {AUTH_EVENT_LABEL[l.event] ?? l.event}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 font-medium">{l.name || "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{l.email}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                    {new Date(l.timestamp).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{l.ipAddress ?? "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{l.deviceType ?? l.device ?? "—"}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                    {(l.browser ?? "—") + " / " + (l.os ?? "—")}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {l.sessionId ? l.sessionId.slice(0, 8) : "—"}
-                  </td>
-                  <td className="max-w-56 px-4 py-3 text-xs text-muted-foreground">{l.detail ?? "—"}</td>
-                  <td className="max-w-64 truncate px-4 py-3 text-xs text-muted-foreground" title={l.userAgent ?? ""}>
-                    {l.userAgent ?? "—"}
-                  </td>
-                </tr>
-              ))}
-              {logins.length === 0 && (
-                <tr>
-                  <td colSpan={10} className="px-4 py-6 text-center text-muted-foreground">
-                    {data ? "No login records match." : "Loading login records…"}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Passwords are never viewable — only salted hashes are stored. This table refreshes itself every few seconds.
-        </p>
-      </section>
-
       <section className="surface-card rise-in">
-        <div className="flex flex-wrap items-center justify-between gap-2 p-5 pb-3">
-          <h2 className="text-sm font-semibold">Activity log ({data?.activity.length ?? 0})</h2>
-          <Input
-            value={aq}
-            onChange={(e) => setAq(e.target.value)}
-            placeholder="Search activity…"
-            className="w-64"
-          />
+        <div className="space-y-3 p-5 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">Activity log ({filtered.length})</h2>
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search person, action, IP…"
+              className="w-64"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setFilter(f.id)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs transition-colors",
+                  filter === f.id
+                    ? "border-transparent bg-primary text-primary-foreground"
+                    : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="divide-y divide-border">
-          {activity.map((a) => (
-            <div key={a.id} className="space-y-1 px-5 py-3 text-sm">
+          {filtered.map((e) => (
+            <div key={e.id} className="space-y-1 px-5 py-3 text-sm">
               <div className="flex flex-wrap items-center gap-3">
-                <span className="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs text-accent-foreground">{a.area}</span>
-                <span className="font-medium">{a.name || a.email}</span>
-                <span className="text-muted-foreground">{a.action}</span>
+                <span
+                  className={cn(
+                    "rounded-full px-2.5 py-0.5 text-xs",
+                    e.authEvent === "failed_login"
+                      ? "bg-destructive/15 text-destructive"
+                      : "bg-primary-soft text-accent-foreground",
+                  )}
+                >
+                  {e.area}
+                </span>
+                <span className="font-medium">{e.name || e.email}</span>
+                <span className="text-muted-foreground">{e.action}</span>
                 <span className="ml-auto whitespace-nowrap text-xs text-muted-foreground">
-                  {new Date(a.ts).toLocaleString()}
+                  {new Date(e.ts).toLocaleString()}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                {[a.detail, a.ipAddress, a.browser && a.os ? `${a.browser} on ${a.os}` : null, a.deviceType]
+                {[e.detail, e.ipAddress, e.browser && e.os ? `${e.browser} on ${e.os}` : null, e.deviceType]
                   .filter(Boolean)
                   .join(" · ") || "—"}
               </p>
-              {a.metadata && (
-                <p className="truncate font-mono text-[11px] text-muted-foreground" title={a.metadata}>
-                  {a.metadata}
+              {e.metadata && (
+                <p className="truncate font-mono text-[11px] text-muted-foreground" title={e.metadata}>
+                  {e.metadata}
                 </p>
               )}
             </div>
           ))}
-          {activity.length === 0 && (
+          {filtered.length === 0 && (
             <p className="p-5 text-sm text-muted-foreground">
-              {data ? "No activity matches." : "Loading activity…"}
+              {data ? "No activity matches this filter." : "Loading activity…"}
             </p>
           )}
         </div>
