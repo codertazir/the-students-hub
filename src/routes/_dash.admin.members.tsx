@@ -1,6 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Eye, EyeOff, KeyRound, Mail, ShieldCheck, ShieldOff, UserCog } from "lucide-react";
+import {
+  CalendarDays,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Mail,
+  ShieldCheck,
+  ShieldOff,
+  UserCog,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -15,7 +24,12 @@ import {
   type MonitoredLogin,
   type MonitoredUser,
 } from "@/lib/monitoring";
-import { adminUpdateEmail, adminUpdateRole, adminViewPassword } from "@/lib/hub.functions";
+import {
+  adminUpdateDob,
+  adminUpdateEmail,
+  adminUpdateRole,
+  adminViewPassword,
+} from "@/lib/hub.functions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -269,6 +283,12 @@ function MemberDetail({
 
       <EmailEditor key={member.id} userId={member.id} email={member.email} />
 
+      <DobEditor
+        key={`dob-${member.id}`}
+        userId={member.id}
+        dateOfBirth={member.dateOfBirth ?? ""}
+      />
+
       <section className="space-y-1.5">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground">
           Login history ({logins.length})
@@ -420,6 +440,48 @@ function EmailEditor({ userId, email }: { userId: string; email: string }) {
         }}
       >
         Save email
+      </Button>
+    </div>
+  );
+}
+
+/** Only admins can correct a member's date of birth. */
+function DobEditor({ userId, dateOfBirth }: { userId: string; dateOfBirth: string }) {
+  const [value, setValue] = useState(dateOfBirth);
+  const [busy, setBusy] = useState(false);
+  const trimmed = value.trim();
+  const parsed = trimmed ? new Date(trimmed) : null;
+  const valid =
+    !trimmed ||
+    (/^\d{4}-\d{2}-\d{2}$/.test(trimmed) &&
+      parsed instanceof Date &&
+      !Number.isNaN(parsed.getTime()) &&
+      parsed.getTime() <= Date.now());
+
+  return (
+    <div className="space-y-2 rounded-xl bg-secondary/50 p-3">
+      <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase text-muted-foreground">
+        <CalendarDays className="size-3.5" /> Date of birth
+      </h3>
+      <Input type="date" value={value} onChange={(e) => setValue(e.target.value)} />
+      {!valid && <p className="text-xs text-destructive">Enter a valid past date.</p>}
+      <Button
+        size="sm"
+        className="w-full rounded-full"
+        disabled={!valid || busy || trimmed === dateOfBirth}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            await adminUpdateDob({ data: { userId, dateOfBirth: trimmed || null } });
+            toast.success("Date of birth updated.");
+          } catch {
+            toast.error("Could not update the date of birth.");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        Save date of birth
       </Button>
     </div>
   );

@@ -400,6 +400,26 @@ export async function adminSetEmail(userId: string, email: string) {
   return { ok: true as const, user: safe };
 }
 
+export async function adminSetDateOfBirth(userId: string, dateOfBirth: string | null) {
+  const admin = await requireAdmin();
+  const prisma = getPrisma();
+  const before = await prisma.user.findUnique({ where: { id: userId }, select: safeUserSelect });
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { dateOfBirth },
+    select: safeUserSelect,
+  });
+  const safe = toSafeUser(user);
+  await recordActivity({
+    user: admin,
+    area: "admin",
+    action: `${displayName(admin)} updated the date of birth of ${displayName(safe)}`,
+    detail: `Previous: ${before?.dateOfBirth || "none"} → ${dateOfBirth || "none"}`,
+    metadata: { targetUserId: userId },
+  });
+  return { ok: true as const, user: safe };
+}
+
 /** Admins promote/demote members; the role lives in the database, never the client. */
 export async function adminSetRole(userId: string, role: "user" | "admin") {
   const admin = await requireAdmin();

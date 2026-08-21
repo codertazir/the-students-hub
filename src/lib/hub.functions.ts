@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import {
   adminSetEmail,
+  adminSetDateOfBirth,
   adminSetRole,
   adminRevealPassword,
   changePassword,
@@ -98,6 +99,20 @@ export const adminUpdateEmail = createServerFn({ method: "POST" })
     z.object({ userId: z.string().min(1), email: z.string().trim().email().max(255) }).parse(input),
   )
   .handler(async ({ data }) => adminSetEmail(data.userId, data.email.toLowerCase()));
+
+export const adminUpdateDob = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        userId: z.string().min(1),
+        dateOfBirth: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .nullable(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => adminSetDateOfBirth(data.userId, data.dateOfBirth));
 
 export const adminUpdateRole = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>

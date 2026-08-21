@@ -2,13 +2,6 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, ChevronDown, Circle, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { useDB } from "@/lib/auth";
 import { TaskDialog } from "@/components/masterplan/TaskDialog";
 import { assigneeLabel, deleteTask, toggleTaskDone, type PlanActor } from "@/lib/masterplan";
@@ -21,8 +14,7 @@ import {
 } from "@/lib/store";
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
   actor: PlanActor;
 }
 
@@ -34,7 +26,7 @@ const select =
 const PRIORITY_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
 const fmt = (ts?: number) => (ts ? new Date(ts).toLocaleString() : "—");
 
-export function AdminTasksSheet({ open, onOpenChange, actor }: Props) {
+export function AdminTasksPanel({ onClose, actor }: Props) {
   const db = useDB();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
@@ -85,14 +77,13 @@ export function AdminTasksSheet({ open, onOpenChange, actor }: Props) {
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-2xl">
-          <SheetHeader className="border-b border-border px-5 py-4">
-            <SheetTitle>All tasks</SheetTitle>
-            <SheetDescription>
+      <div className="flex h-full w-full flex-col gap-0 overflow-hidden">
+          <div className="border-b border-border px-5 py-4">
+            <h2 className="text-base font-semibold">All tasks</h2>
+            <p className="text-sm text-muted-foreground">
               Every task in the master plan — including private assignments — with full history.
-            </SheetDescription>
-          </SheetHeader>
+            </p>
+          </div>
 
           <div className="space-y-2 border-b border-border px-5 py-3">
             <Input
@@ -258,13 +249,12 @@ export function AdminTasksSheet({ open, onOpenChange, actor }: Props) {
               variant="ghost"
               size="sm"
               className="float-right h-7 rounded-full"
-              onClick={() => onOpenChange(false)}
+              onClick={onClose}
             >
               Close
             </Button>
           </div>
-        </SheetContent>
-      </Sheet>
+      </div>
 
       {editing && (
         <TaskDialog
