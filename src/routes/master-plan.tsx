@@ -379,7 +379,7 @@ function MasterPlanPage() {
       </main>
 
         {panel && (
-          <aside className="surface-card rise-in h-fit overflow-hidden lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]">
+          <aside className="surface-card rise-in h-fit overflow-y-auto lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]">
             {panel === "tasks" ? (
               <AdminTasksPanel onClose={() => setPanel(null)} actor={actor} />
             ) : (
