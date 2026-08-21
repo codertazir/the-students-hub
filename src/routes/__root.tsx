@@ -14,6 +14,10 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../lib/auth";
 import { Toaster } from "@/components/ui/sonner";
 
+/** Canonical site origin (client uses the live origin, SSR falls back to the configured one). */
+const SITE_ORIGIN = "https://id-preview--5e357ba8-81d6-41f3-8c9b-bd22da3925ee.lovable.app";
+const getOrigin = () => (typeof window !== "undefined" ? window.location.origin : SITE_ORIGIN);
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -76,18 +80,8 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   /** Absolute canonical URL for the current page (needed for SEO + social cards). */
-  loader: async ({ location }) => {
-    let origin = "";
-    if (typeof window !== "undefined") {
-      origin = window.location.origin;
-    } else {
-      try {
-        const { getRequest } = await import("@tanstack/react-start/server");
-        origin = new URL(getRequest().url).origin;
-      } catch {
-        origin = "";
-      }
-    }
+  loader: ({ location }) => {
+    const origin = getOrigin();
     return { canonical: origin ? origin + location.pathname : "" };
   },
   head: ({ loaderData }) => ({
