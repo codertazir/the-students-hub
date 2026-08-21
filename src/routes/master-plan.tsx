@@ -15,9 +15,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 import { useAuth, useDB } from "@/lib/auth";
-import { AdminTasksSheet } from "@/components/masterplan/AdminTasksSheet";
-import { PlanSettingsSheet } from "@/components/masterplan/PlanSettingsSheet";
+import { AdminTasksPanel } from "@/components/masterplan/AdminTasksSheet";
+import { PlanSettingsPanel } from "@/components/masterplan/PlanSettingsSheet";
 import { ProjectDialog } from "@/components/masterplan/ProjectDialog";
 import { TasksCell } from "@/components/masterplan/TasksCell";
 import {
@@ -99,8 +100,7 @@ function MasterPlanPage() {
   const [status, setStatus] = useState("all");
   const [priority, setPriority] = useState("all");
   const [sort, setSort] = useState<SortKey>("manual");
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [adminTasksOpen, setAdminTasksOpen] = useState(false);
+  const [panel, setPanel] = useState<"tasks" | "layout" | null>(null);
   const [projectDialog, setProjectDialog] = useState<{
     open: boolean;
     project: PlanProject | null;
@@ -223,7 +223,7 @@ function MasterPlanPage() {
                   variant="outline"
                   size="sm"
                   className="h-9 rounded-full"
-                  onClick={() => setAdminTasksOpen(true)}
+                  onClick={() => setPanel((p) => (p === "tasks" ? null : "tasks"))}
                 >
                   All tasks
                 </Button>
@@ -231,7 +231,7 @@ function MasterPlanPage() {
                   variant="outline"
                   size="sm"
                   className="h-9 rounded-full"
-                  onClick={() => setSettingsOpen(true)}
+                  onClick={() => setPanel((p) => (p === "layout" ? null : "layout"))}
                 >
                   <Settings2 className="mr-1.5 size-3.5" /> Layout
                 </Button>
@@ -241,7 +241,13 @@ function MasterPlanPage() {
         </div>
       </header>
 
-      <main className="space-y-10 px-4 py-6 sm:px-6">
+      <div
+        className={cn(
+          "gap-5 px-4 py-6 transition-all duration-300 sm:px-6",
+          panel ? "grid lg:grid-cols-[1.4fr_1fr]" : "block",
+        )}
+      >
+      <main className="min-w-0 space-y-10">
         {db.planMonths.map((month) => {
           const rows = filterAndSort(projectsForMonth(db, month));
           return (
@@ -372,6 +378,17 @@ function MasterPlanPage() {
         })}
       </main>
 
+        {panel && (
+          <aside className="surface-card rise-in h-fit overflow-hidden lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]">
+            {panel === "tasks" ? (
+              <AdminTasksPanel onClose={() => setPanel(null)} actor={actor} />
+            ) : (
+              <PlanSettingsPanel onClose={() => setPanel(null)} />
+            )}
+          </aside>
+        )}
+      </div>
+
       <ProjectDialog
         open={projectDialog.open}
         onOpenChange={(open) => setProjectDialog((s) => ({ ...s, open }))}
@@ -379,10 +396,6 @@ function MasterPlanPage() {
         project={projectDialog.project}
         defaultMonth={projectDialog.month}
       />
-      {isAdmin && <PlanSettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />}
-      {isAdmin && (
-        <AdminTasksSheet open={adminTasksOpen} onOpenChange={setAdminTasksOpen} actor={actor} />
-      )}
     </div>
   );
 }
