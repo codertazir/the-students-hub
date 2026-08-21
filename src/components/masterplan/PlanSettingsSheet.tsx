@@ -1,33 +1,29 @@
 import { ArrowDown, ArrowUp, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { useDB } from "@/lib/auth";
 import { moveColumn, moveMonth, toggleColumn } from "@/lib/masterplan";
 import { MONTH_NAMES, PLAN_COLUMN_LABELS } from "@/lib/store";
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
 }
 
-export function PlanSettingsSheet({ open, onOpenChange }: Props) {
+export function PlanSettingsPanel({ onClose }: Props) {
   const db = useDB();
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
-        <SheetHeader className="border-b border-border px-5 py-4">
-          <SheetTitle>Master plan layout</SheetTitle>
-          <SheetDescription>
+    <div className="flex h-full w-full flex-col gap-0 overflow-hidden">
+      <div className="flex items-start gap-3 border-b border-border px-5 py-4">
+        <div className="flex-1">
+          <h2 className="text-base font-semibold">Master plan layout</h2>
+          <p className="text-sm text-muted-foreground">
             Set the month order and choose which columns everyone sees.
-          </SheetDescription>
-        </SheetHeader>
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" className="h-7 rounded-full" onClick={onClose}>
+          Close
+        </Button>
+      </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
           <section>
@@ -108,7 +104,6 @@ export function PlanSettingsSheet({ open, onOpenChange }: Props) {
             </ul>
           </section>
         </div>
-      </SheetContent>
-    </Sheet>
+    </div>
   );
 }
