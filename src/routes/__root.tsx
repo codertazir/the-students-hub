@@ -7,12 +7,26 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { createIsomorphicFn } from "@tanstack/react-start";
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../lib/auth";
 import { Toaster } from "@/components/ui/sonner";
+
+/** Origin of the current request, resolved separately on client and server. */
+const getOrigin = createIsomorphicFn()
+  .client(() => window.location.origin)
+  .server(() => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { getRequest } = require("@tanstack/react-start/server");
+      return new URL(getRequest().url).origin;
+    } catch {
+      return "";
+    }
+  });
 
 function NotFoundComponent() {
   return (
