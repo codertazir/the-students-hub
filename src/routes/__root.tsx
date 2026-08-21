@@ -76,18 +76,8 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   /** Absolute canonical URL for the current page (needed for SEO + social cards). */
-  loader: async ({ location }) => {
-    let origin = "";
-    if (typeof window !== "undefined") {
-      origin = window.location.origin;
-    } else {
-      try {
-        const { getRequest } = await import("@tanstack/react-start/server");
-        origin = new URL(getRequest().url).origin;
-      } catch {
-        origin = "";
-      }
-    }
+  loader: ({ location }) => {
+    const origin = getOrigin();
     return { canonical: origin ? origin + location.pathname : "" };
   },
   head: ({ loaderData }) => ({
