@@ -269,6 +269,12 @@ function MemberDetail({
 
       <EmailEditor key={member.id} userId={member.id} email={member.email} />
 
+      <DobEditor
+        key={`dob-${member.id}`}
+        userId={member.id}
+        dateOfBirth={member.dateOfBirth ?? ""}
+      />
+
       <section className="space-y-1.5">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground">
           Login history ({logins.length})
