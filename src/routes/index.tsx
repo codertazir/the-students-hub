@@ -130,19 +130,28 @@ const SCREENS = [
         <span className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground">
           Club funds
         </span>
-        <span className="fade-slide h-6 w-24 rounded-md bg-primary/25" aria-hidden="true" />
+        <span className="fade-slide text-lg font-bold tracking-tight text-foreground">
+          Track every riyal
+        </span>
         <div className="space-y-1.5">
-          {[64, 38].map((w, i) => (
-            <div key={w} className="h-1.5 overflow-hidden rounded-full bg-secondary">
-              <div
-                className="h-full rounded-full bg-primary/70 transition-[width] duration-700 ease-out"
-                style={{ width: `${w}%`, transitionDelay: `${i * 140}ms` }}
-              />
+          {[
+            { label: "Income & expenses logged", w: 64 },
+            { label: "Shared with the whole club", w: 38 },
+          ].map((row, i) => (
+            <div key={row.label} className="space-y-1">
+              <span className="block text-[8px] text-muted-foreground">{row.label}</span>
+              <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+                <div
+                  className="h-full rounded-full bg-primary/70 transition-[width] duration-700 ease-out"
+                  style={{ width: `${row.w}%`, transitionDelay: `${i * 140}ms` }}
+                />
+              </div>
             </div>
           ))}
         </div>
       </div>
     ),
+
   },
 ] as const;
 
