@@ -510,6 +510,47 @@ export async function adminRevealPassword(userId: string) {
   return { ok: true as const, password };
 }
 
+/**
+ * Permanently deletes a member.
+ *
+ * Guarded twice: the admin types a confirmation phrase and re-enters their own
+ * password. Club history is preserved — notes and events written by the member
+ * are re-parented to the acting admin, login rows drop their user reference and
+ * the activity trail keeps its (name + email) entries — so nothing is orphaned.
+ */
+export async function adminDeleteUser(userId: string, confirm: string, password: string) {
+  const admin = await requireAdmin();
+  if (confirm.trim().toUpperCase() !== "DELETE")
+    return { ok: false as const, reason: "confirm" as const };
+  if (userId === admin.id) return { ok: false as const, reason: "self" as const };
+
+  const prisma = getPrisma();
+  const adminRow = await prisma.user.findUnique({ where: { id: admin.id } });
+  if (!adminRow || !(await verifyPassword(password, adminRow.password)))
+    return { ok: false as const, reason: "password" as const };
+
+  const target = await prisma.user.findUnique({ where: { id: userId }, select: safeUserSelect });
+  if (!target) return { ok: false as const, reason: "missing" as const };
+  const safe = toSafeUser(target);
+
+  await prisma.note.updateMany({ where: { createdById: userId }, data: { createdById: admin.id } });
+  await prisma.event.updateMany({ where: { createdById: userId }, data: { createdById: admin.id } });
+  await prisma.loginLog.updateMany({ where: { userId }, data: { userId: null } });
+  await prisma.activityLog.updateMany({ where: { userId }, data: { userId: null } });
+  await prisma.user.delete({ where: { id: userId } });
+
+  await recordActivity({
+    user: admin,
+    area: "admin",
+    action: `${displayName(admin)} permanently deleted the account of ${displayName(safe)}`,
+    detail: `Deleted account: ${safe.email}`,
+    metadata: { targetUserId: userId, email: safe.email, role: safe.role },
+  });
+
+  return { ok: true as const, email: safe.email };
+}
+
+
 export async function listContent() {
   await requireUser();
   const prisma = getPrisma();
