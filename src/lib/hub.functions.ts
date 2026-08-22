@@ -7,6 +7,7 @@ import {
   adminSetDateOfBirth,
   adminSetRole,
   adminRevealPassword,
+  adminDeleteUser,
   changePassword,
   currentUser,
   deleteEvent,
@@ -116,7 +117,7 @@ export const adminUpdateDob = createServerFn({ method: "POST" })
 
 export const adminUpdateRole = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
-    z.object({ userId: z.string().min(1), role: z.enum(["user", "admin"]) }).parse(input),
+    z.object({ userId: z.string().min(1), role: z.enum(["user", "manager", "admin"]) }).parse(input),
   )
   .handler(async ({ data }) => adminSetRole(data.userId, data.role));
 
@@ -124,6 +125,19 @@ export const adminUpdateRole = createServerFn({ method: "POST" })
 export const adminViewPassword = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ userId: z.string().min(1) }).parse(input))
   .handler(async ({ data }) => adminRevealPassword(data.userId));
+
+/** Permanent account deletion — double-confirmed by phrase + admin password. */
+export const adminRemoveUser = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        userId: z.string().min(1),
+        confirm: z.string().min(1),
+        password: z.string().min(1),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => adminDeleteUser(data.userId, data.confirm, data.password));
 
 export const getContent = createServerFn({ method: "GET" }).handler(async () => listContent());
 

@@ -21,6 +21,7 @@ import {
   type User,
 } from "./store";
 import { startSync } from "./sync";
+import { isStaff, normalizeRole } from "./permissions";
 
 import {
   getActivity,
@@ -83,9 +84,10 @@ function toStoreUser(row: NonNullable<SafeUser>): User {
     dob: row.dateOfBirth ?? "",
     ...(row.phoneNumber ? { phone: row.phoneNumber } : {}),
     ...(row.profilePicture ? { avatar: row.profilePicture } : {}),
-    isAdmin: row.role === "admin",
+    role: normalizeRole(row.role),
+    isAdmin: isStaff(row.role),
     createdAt: new Date(row.createdAt).getTime(),
-    onboarded: row.role === "admin" ? Boolean(row.name) : Boolean(row.name && row.dateOfBirth),
+    onboarded: isStaff(row.role) ? Boolean(row.name) : Boolean(row.name && row.dateOfBirth),
   };
 }
 
