@@ -90,3 +90,6 @@ ALTER TABLE "activity_logs" ADD COLUMN IF NOT EXISTS "metadata" JSONB;
 
 -- Reversible password storage (admin-recoverable, AES-256-GCM ciphertext)
 ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "passwordCipher" TEXT;
+
+-- Manager role (admin capabilities except Members + Monitoring)
+DO $$ BEGIN ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'manager'; EXCEPTION WHEN others THEN NULL; END $$;
