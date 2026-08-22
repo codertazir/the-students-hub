@@ -6,6 +6,8 @@
  * powers the "live" behaviour (presence, collaborative typing, notifications).
  */
 
+import type { Role } from "./permissions";
+
 export const EMAIL_DOMAIN = "@isg.edu.sa";
 
 export type ID = string;
@@ -20,6 +22,9 @@ export interface User {
   dob: string;
   phone?: string;
   avatar?: string;
+  /** Stored role — drives every permission check (see lib/permissions.ts). */
+  role: Role;
+  /** True for managers and admins: has club-management powers. */
   isAdmin: boolean;
   createdAt: number;
   onboarded: boolean;

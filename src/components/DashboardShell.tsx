@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { ONLINE_WINDOW_MS, useAuth, useDB } from "@/lib/auth";
 import { setDB, visibleNotifications } from "@/lib/store";
 import { OnboardingDialog } from "@/components/OnboardingDialog";
+import { ROLE_LABEL, can, type Permission } from "@/lib/permissions";
 
 const NAV = [
   { to: "/home", label: "Home", icon: Home },
@@ -48,9 +49,14 @@ const ADMIN_NAV = [
   { to: "/admin/meeting", label: "Meeting", icon: CalendarDays },
   { to: "/admin/funds", label: "Funds", icon: Wallet },
   { to: "/admin/tasks", label: "Tasks", icon: ListTodo },
-  { to: "/admin/members", label: "Members", icon: Users },
-  { to: "/admin/monitoring", label: "Monitoring", icon: ShieldCheck },
-] as const;
+  { to: "/admin/members", label: "Members", icon: Users, permission: "manage:members" },
+  { to: "/admin/monitoring", label: "Monitoring", icon: ShieldCheck, permission: "view:monitoring" },
+] as const satisfies readonly {
+  to: string;
+  label: string;
+  icon: typeof Users;
+  permission?: Permission;
+}[];
 
 export function DashboardShell() {
   const { user, loading, signOut } = useAuth();
@@ -155,7 +161,7 @@ export function DashboardShell() {
             kind: "Suggestion",
             go: () => void navigate({ to: "/home" }),
           })),
-        ...(user.isAdmin
+        ...(can(user.role, "manage:members")
           ? db.users
               .filter((u) => hit(u.fullName, u.email))
               .map((u) => ({
@@ -238,7 +244,9 @@ export function DashboardShell() {
                   Admin
                 </p>
               )}
-              {ADMIN_NAV.map((item) => (
+              {ADMIN_NAV.filter(
+                (item) => !("permission" in item) || can(user.role, item.permission),
+              ).map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
@@ -274,7 +282,7 @@ export function DashboardShell() {
                   {user.fullName || "Member"}
                 </span>
                 <span className="block truncate text-xs text-muted-foreground">
-                  {user.isAdmin ? "Admin" : "Club member"} · {user.email}
+                  {ROLE_LABEL[user.role]} · {user.email}
                 </span>
               </span>
             )}

@@ -2,6 +2,7 @@ import { getPrisma } from "./db.server";
 import { hashPassword, verifyPassword } from "./password.server";
 import { decryptSecret, encryptSecret } from "./crypto.server";
 import { getAppSession } from "./session.server";
+import { can, isStaff, normalizeRole, type Role } from "./permissions";
 
 export interface SafeUser {
   id: string;
@@ -11,7 +12,7 @@ export interface SafeUser {
   profilePicture: string | null;
   phoneNumber: string | null;
   dateOfBirth: string | null;
-  role: "user" | "admin";
+  role: Role;
   createdAt: string;
   lastActiveAt: string | null;
 }
@@ -76,7 +77,7 @@ type DbUser = {
   profilePicture: string | null;
   phoneNumber: string | null;
   dateOfBirth: string | null;
-  role: "user" | "admin";
+  role: Role;
   createdAt: Date;
   lastActiveAt: Date | null;
 };
@@ -91,7 +92,7 @@ function toSafeUser(user: DbUser): SafeUser {
     profilePicture: user.profilePicture,
     phoneNumber: user.phoneNumber,
     dateOfBirth: user.dateOfBirth,
-    role: user.role,
+    role: normalizeRole(user.role),
     createdAt: user.createdAt.toISOString(),
     lastActiveAt: user.lastActiveAt ? user.lastActiveAt.toISOString() : null,
   };
@@ -307,7 +308,14 @@ async function requireUser() {
 
 async function requireAdmin() {
   const user = await requireUser();
-  if (user.role !== "admin") throw new Error("Admins only.");
+  if (!can(user.role, "manage:members")) throw new Error("Admins only.");
+  return user;
+}
+
+/** Managers and admins — everything except member management + monitoring. */
+async function requireStaff() {
+  const user = await requireUser();
+  if (!isStaff(user.role)) throw new Error("Managers or admins only.");
   return user;
 }
 
@@ -420,11 +428,13 @@ export async function adminSetDateOfBirth(userId: string, dateOfBirth: string | 
   return { ok: true as const, user: safe };
 }
 
+const ROLE_WORD: Record<Role, string> = { user: "member", manager: "manager", admin: "admin" };
+
 /** Admins promote/demote members; the role lives in the database, never the client. */
-export async function adminSetRole(userId: string, role: "user" | "admin") {
+export async function adminSetRole(userId: string, role: Role) {
   const admin = await requireAdmin();
   const prisma = getPrisma();
-  if (userId === admin.id && role === "user")
+  if (userId === admin.id && role !== "admin")
     return { ok: false as const, reason: "self" as const };
   const user = await prisma.user.update({
     where: { id: userId },
@@ -435,10 +445,7 @@ export async function adminSetRole(userId: string, role: "user" | "admin") {
   await recordActivity({
     user: admin,
     area: "admin",
-    action:
-      role === "admin"
-        ? `${displayName(admin)} promoted ${displayName(safe)} to admin`
-        : `${displayName(admin)} demoted ${displayName(safe)} to member`,
+    action: `${displayName(admin)} changed the role of ${displayName(safe)} to ${ROLE_WORD[role]}`,
     detail: `Member: ${safe.email}`,
     metadata: { targetUserId: userId, role },
   });
@@ -502,6 +509,47 @@ export async function adminRevealPassword(userId: string) {
   // activity log — only actions that change data are audited.
   return { ok: true as const, password };
 }
+
+/**
+ * Permanently deletes a member.
+ *
+ * Guarded twice: the admin types a confirmation phrase and re-enters their own
+ * password. Club history is preserved — notes and events written by the member
+ * are re-parented to the acting admin, login rows drop their user reference and
+ * the activity trail keeps its (name + email) entries — so nothing is orphaned.
+ */
+export async function adminDeleteUser(userId: string, confirm: string, password: string) {
+  const admin = await requireAdmin();
+  if (confirm.trim().toUpperCase() !== "DELETE")
+    return { ok: false as const, reason: "confirm" as const };
+  if (userId === admin.id) return { ok: false as const, reason: "self" as const };
+
+  const prisma = getPrisma();
+  const adminRow = await prisma.user.findUnique({ where: { id: admin.id } });
+  if (!adminRow || !(await verifyPassword(password, adminRow.password)))
+    return { ok: false as const, reason: "password" as const };
+
+  const target = await prisma.user.findUnique({ where: { id: userId }, select: safeUserSelect });
+  if (!target) return { ok: false as const, reason: "missing" as const };
+  const safe = toSafeUser(target);
+
+  await prisma.note.updateMany({ where: { createdById: userId }, data: { createdById: admin.id } });
+  await prisma.event.updateMany({ where: { createdById: userId }, data: { createdById: admin.id } });
+  await prisma.loginLog.updateMany({ where: { userId }, data: { userId: null } });
+  await prisma.activityLog.updateMany({ where: { userId }, data: { userId: null } });
+  await prisma.user.delete({ where: { id: userId } });
+
+  await recordActivity({
+    user: admin,
+    area: "admin",
+    action: `${displayName(admin)} permanently deleted the account of ${displayName(safe)}`,
+    detail: `Deleted account: ${safe.email}`,
+    metadata: { targetUserId: userId, email: safe.email, role: safe.role },
+  });
+
+  return { ok: true as const, email: safe.email };
+}
+
 
 export async function listContent() {
   await requireUser();
@@ -650,7 +698,7 @@ export async function saveNote(input: {
   date?: string | undefined;
   anonymous?: boolean | undefined;
 }) {
-  const me = await requireAdmin();
+  const me = await requireStaff();
   const prisma = getPrisma();
   const data = {
     title: input.title,
@@ -669,7 +717,7 @@ export async function saveNote(input: {
 }
 
 export async function deleteNote(id: string) {
-  await requireAdmin();
+  await requireStaff();
   await getPrisma().note.deleteMany({ where: { id } });
   return { ok: true };
 }
@@ -682,7 +730,7 @@ export async function saveEvent(input: {
   date?: string | undefined;
   location?: string | null | undefined;
 }) {
-  const me = await requireAdmin();
+  const me = await requireStaff();
   const prisma = getPrisma();
   const data = {
     title: input.title,
@@ -702,7 +750,7 @@ export async function saveEvent(input: {
 }
 
 export async function deleteEvent(id: string) {
-  await requireAdmin();
+  await requireStaff();
   await getPrisma().event.deleteMany({ where: { id } });
   return { ok: true };
 }

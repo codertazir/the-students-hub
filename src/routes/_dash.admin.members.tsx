@@ -1,15 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import {
-  CalendarDays,
-  Eye,
-  EyeOff,
-  KeyRound,
-  Mail,
-  ShieldCheck,
-  ShieldOff,
-  UserCog,
-} from "lucide-react";
+import { CalendarDays, Eye, EyeOff, KeyRound, Mail, ShieldCheck, Trash2, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -25,11 +16,28 @@ import {
   type MonitoredUser,
 } from "@/lib/monitoring";
 import {
+  adminRemoveUser,
   adminUpdateDob,
   adminUpdateEmail,
   adminUpdateRole,
   adminViewPassword,
 } from "@/lib/hub.functions";
+import { ROLES, ROLE_LABEL, can, type Role } from "@/lib/permissions";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -63,7 +71,7 @@ function when(value: string | null) {
 
 function MembersPage() {
   const { user } = useAuth();
-  const isAdmin = Boolean(user?.isAdmin);
+  const isAdmin = can(user?.role, "manage:members");
   const { data, error } = useMonitoring(isAdmin);
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
@@ -82,20 +90,26 @@ function MembersPage() {
   }, [members, q]);
 
   if (!user) return null;
-  if (!isAdmin) return <AdminOnly />;
+  if (!isAdmin)
+    return (
+      <AdminOnly
+        title="Administrators only"
+        description="Managing members is limited to full administrators."
+      />
+    );
 
   const detail = members.find((u) => u.id === selected) ?? null;
 
-  const toggleRole = async (target: MonitoredUser) => {
+  const changeRole = async (target: MonitoredUser, next: Role) => {
+    if (next === target.role) return;
     setBusyRole(target.id);
     try {
-      const next = target.role === "admin" ? "user" : "admin";
       const res = await adminUpdateRole({ data: { userId: target.id, role: next } });
       if (!res.ok) {
         toast.error("You cannot remove your own admin access.");
         return;
       }
-      toast.success(next === "admin" ? "Promoted to admin." : "Demoted to member.");
+      toast.success(`Role updated to ${ROLE_LABEL[next]}.`);
     } catch {
       toast.error("Could not update the role.");
     } finally {
@@ -161,10 +175,12 @@ function MembersPage() {
                         "rounded-full px-2 py-0.5 text-xs",
                         u.role === "admin"
                           ? "bg-primary-soft text-accent-foreground"
-                          : "bg-secondary text-muted-foreground",
+                          : u.role === "manager"
+                            ? "bg-accent text-accent-foreground"
+                            : "bg-secondary text-muted-foreground",
                       )}
                     >
-                      {u.role === "admin" ? "Admin" : "Member"}
+                      {ROLE_LABEL[u.role]}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{u.dateOfBirth || "—"}</td>
@@ -183,18 +199,23 @@ function MembersPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                    <button
+                    <Select
+                      value={u.role}
                       disabled={busyRole === u.id}
-                      className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs transition-colors hover:bg-secondary disabled:opacity-50"
-                      onClick={() => void toggleRole(u)}
+                      onValueChange={(v) => void changeRole(u, v as Role)}
                     >
-                      {u.role === "admin" ? (
-                        <ShieldOff className="size-3.5" />
-                      ) : (
-                        <ShieldCheck className="size-3.5" />
-                      )}
-                      {u.role === "admin" ? "Demote" : "Promote"}
-                    </button>
+                      <SelectTrigger className="ml-auto h-8 w-[124px] rounded-full text-xs">
+                        <ShieldCheck className="size-3.5 shrink-0" />
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ROLES.map((r) => (
+                          <SelectItem key={r} value={r}>
+                            {ROLE_LABEL[r]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </td>
                 </tr>
               ))}
@@ -211,6 +232,9 @@ function MembersPage() {
 
         {detail && (
           <MemberDetail
+            key={detail.id}
+            currentUserId={user.id}
+            onDeleted={() => setSelected(null)}
             member={detail}
             logins={(data?.logins ?? []).filter((l) => l.userId === detail.id)}
             activity={(data?.activity ?? []).filter((a) => a.userId === detail.id)}
@@ -225,10 +249,14 @@ function MemberDetail({
   member,
   logins,
   activity,
+  currentUserId,
+  onDeleted,
 }: {
   member: MonitoredUser;
   logins: MonitoredLogin[];
   activity: MonitoredActivity[];
+  currentUserId: string;
+  onDeleted: () => void;
 }) {
   const online = isOnline(member.lastActiveAt);
 
@@ -238,7 +266,7 @@ function MemberDetail({
     { label: "Email", value: member.email },
     { label: "Phone number", value: member.phoneNumber || "—" },
     { label: "Date of birth", value: member.dateOfBirth || "—" },
-    { label: "Role", value: member.role === "admin" ? "Admin" : "Member" },
+    { label: "Role", value: ROLE_LABEL[member.role] },
     { label: "Date joined", value: new Date(member.createdAt).toLocaleDateString() },
     { label: "Account created", value: new Date(member.createdAt).toLocaleString() },
     { label: "Status", value: online ? "Online" : "Offline" },
@@ -288,6 +316,14 @@ function MemberDetail({
         userId={member.id}
         dateOfBirth={member.dateOfBirth ?? ""}
       />
+
+      {member.id !== currentUserId && (
+        <DeleteMember
+          userId={member.id}
+          label={member.displayName || member.email}
+          onDeleted={onDeleted}
+        />
+      )}
 
       <section className="space-y-1.5">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground">
@@ -347,6 +383,126 @@ function MemberDetail({
         </ul>
       </section>
     </aside>
+  );
+}
+
+/**
+ * Permanent account deletion.
+ *
+ * Two guards before anything is removed: the admin types DELETE and re-enters
+ * their own password, which the server verifies before touching the database.
+ */
+function DeleteMember({
+  userId,
+  label,
+  onDeleted,
+}: {
+  userId: string;
+  label: string;
+  onDeleted: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [phrase, setPhrase] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const ready = phrase.trim().toUpperCase() === "DELETE" && password.length > 0;
+
+  const submit = async () => {
+    setBusy(true);
+    try {
+      const res = await adminRemoveUser({ data: { userId, confirm: phrase, password } });
+      if (!res.ok) {
+        toast.error(
+          res.reason === "password"
+            ? "That is not your account password."
+            : res.reason === "self"
+              ? "You cannot delete your own account."
+              : res.reason === "missing"
+                ? "That account no longer exists."
+                : "Type DELETE to confirm.",
+        );
+        return;
+      }
+      toast.success(`${label} was permanently deleted.`);
+      setOpen(false);
+      setPhrase("");
+      setPassword("");
+      onDeleted();
+    } catch {
+      toast.error("Could not delete this account.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+      <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase text-destructive">
+        <Trash2 className="size-3.5" /> Danger zone
+      </h3>
+      <p className="text-xs text-muted-foreground">
+        Permanently removes this account. Club notes and events they created stay in the hub.
+      </p>
+      <Button
+        size="sm"
+        variant="destructive"
+        className="w-full rounded-full"
+        onClick={() => setOpen(true)}
+      >
+        Delete user
+      </Button>
+
+      <Dialog open={open} onOpenChange={(v) => !busy && setOpen(v)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete {label}?</DialogTitle>
+            <DialogDescription>
+              This is permanent. The account is removed from the database, from every member list
+              and search, and they are signed out immediately. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground" htmlFor="confirm-phrase">
+                Type DELETE to confirm
+              </label>
+              <Input
+                id="confirm-phrase"
+                value={phrase}
+                autoComplete="off"
+                placeholder="DELETE"
+                onChange={(e) => setPhrase(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground" htmlFor="confirm-pw">
+                Your own account password
+              </label>
+              <Input
+                id="confirm-pw"
+                type="password"
+                value={password}
+                autoComplete="current-password"
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-full" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              className="rounded-full"
+              disabled={!ready || busy}
+              onClick={() => void submit()}
+            >
+              {busy ? "Deleting…" : "Permanently delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
