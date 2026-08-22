@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { AdminOnly } from "@/components/admin/AdminOnly";
 import { useAuth } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { AUTH_EVENT_LABEL, isOnline, useMonitoring } from "@/lib/monitoring";
 import { cn } from "@/lib/utils";
 
@@ -84,7 +85,7 @@ const FILTERS: { id: string; label: string; match: (e: Entry) => boolean }[] = [
 
 function MonitoringPage() {
   const { user } = useAuth();
-  const isAdmin = Boolean(user?.isAdmin);
+  const isAdmin = can(user?.role, "view:monitoring");
   const { data, error } = useMonitoring(isAdmin);
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
@@ -140,7 +141,13 @@ function MonitoringPage() {
   }, [entries, active, q]);
 
   if (!user) return null;
-  if (!isAdmin) return <AdminOnly />;
+  if (!isAdmin)
+    return (
+      <AdminOnly
+        title="Administrators only"
+        description="Monitoring is limited to full administrators."
+      />
+    );
 
   const users = data?.users ?? [];
   const online = users.filter((u) => isOnline(u.lastActiveAt));
