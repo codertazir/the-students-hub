@@ -307,8 +307,6 @@ function MemberDetail({
         ))}
       </dl>
 
-      <PasswordViewer key={`pw-${member.id}`} userId={member.id} />
-
       <EmailEditor key={member.id} userId={member.id} email={member.email} />
 
       <DobEditor
@@ -316,6 +314,8 @@ function MemberDetail({
         userId={member.id}
         dateOfBirth={member.dateOfBirth ?? ""}
       />
+
+      <PasswordViewer key={`pw-${member.id}`} userId={member.id} />
 
       {member.id !== currentUserId && (
         <DeleteMember

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, ChevronDown, Circle, Plus } from "lucide-react";
+import { CheckCircle2, ChevronDown, Circle, Plus, Trash2 } from "lucide-react";
 import { notify, setDB, uid, userLabel, visibleTasks, type Task } from "@/lib/store";
 import { useAuth, useDB } from "@/lib/auth";
 import { track } from "@/lib/track";
@@ -55,6 +55,16 @@ export function TasksPanel({
     }
   }
 
+  /** Admin-only: permanently remove a task for everyone. */
+  function remove(task: Task) {
+    if (!me.isAdmin) return;
+    if (!confirm(`Permanently delete “${task.title}”? This cannot be undone.`)) return;
+    setDB((d) => {
+      d.tasks = d.tasks.filter((x) => x.id !== task.id);
+    });
+    track("tasks", `permanently deleted the task "${task.title}"`, null, { taskId: task.id });
+  }
+
   function create() {
     if (!title.trim()) return;
     setDB((d) => {
@@ -94,10 +104,10 @@ export function TasksPanel({
     <div className="space-y-3">
       <ul className="space-y-1.5">
         {shown.map((t) => (
-          <li key={t.id} className="fade-slide">
+          <li key={t.id} className="fade-slide group flex items-start gap-1">
             <button
               onClick={() => toggle(t)}
-              className="press flex w-full items-start gap-3 rounded-xl px-2 py-2 text-left text-sm transition-colors hover:bg-secondary"
+              className="press flex min-w-0 flex-1 items-start gap-3 rounded-xl px-2 py-2 text-left text-sm transition-colors hover:bg-secondary"
             >
               <Circle className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-colors" />
               <span className="min-w-0 flex-1">
@@ -113,6 +123,16 @@ export function TasksPanel({
                 </span>
               </span>
             </button>
+            {me.isAdmin && (
+              <button
+                onClick={() => remove(t)}
+                title="Delete task permanently"
+                aria-label={`Delete task ${t.title}`}
+                className="press mt-2 shrink-0 rounded-lg p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            )}
           </li>
         ))}
         {open_.length === 0 && (
@@ -202,14 +222,24 @@ export function TasksPanel({
           {showDone && (
             <ul className="fade-slide mt-2 space-y-1">
               {done.map((t) => (
-                <li key={t.id}>
+                <li key={t.id} className="group flex items-start gap-1">
                   <button
                     onClick={() => toggle(t)}
-                    className="flex w-full items-start gap-3 rounded-xl px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-secondary"
+                    className="flex min-w-0 flex-1 items-start gap-3 rounded-xl px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-secondary"
                   >
                     <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                     <span className="line-through">{t.title}</span>
                   </button>
+                  {me.isAdmin && (
+                    <button
+                      onClick={() => remove(t)}
+                      title="Delete task permanently"
+                      aria-label={`Delete task ${t.title}`}
+                      className="press mt-1 shrink-0 rounded-lg p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
