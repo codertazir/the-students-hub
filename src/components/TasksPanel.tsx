@@ -55,6 +55,16 @@ export function TasksPanel({
     }
   }
 
+  /** Admin-only: permanently remove a task for everyone. */
+  function remove(task: Task) {
+    if (!me.isAdmin) return;
+    if (!confirm(`Permanently delete “${task.title}”? This cannot be undone.`)) return;
+    setDB((d) => {
+      d.tasks = d.tasks.filter((x) => x.id !== task.id);
+    });
+    track("tasks", `permanently deleted the task "${task.title}"`, null, { taskId: task.id });
+  }
+
   function create() {
     if (!title.trim()) return;
     setDB((d) => {
