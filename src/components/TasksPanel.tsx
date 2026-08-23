@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, ChevronDown, Circle, Plus } from "lucide-react";
+import { CheckCircle2, ChevronDown, Circle, Plus, Trash2 } from "lucide-react";
 import { notify, setDB, uid, userLabel, visibleTasks, type Task } from "@/lib/store";
 import { useAuth, useDB } from "@/lib/auth";
 import { track } from "@/lib/track";
