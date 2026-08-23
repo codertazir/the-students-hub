@@ -222,14 +222,24 @@ export function TasksPanel({
           {showDone && (
             <ul className="fade-slide mt-2 space-y-1">
               {done.map((t) => (
-                <li key={t.id}>
+                <li key={t.id} className="group flex items-start gap-1">
                   <button
                     onClick={() => toggle(t)}
-                    className="flex w-full items-start gap-3 rounded-xl px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-secondary"
+                    className="flex min-w-0 flex-1 items-start gap-3 rounded-xl px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-secondary"
                   >
                     <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                     <span className="line-through">{t.title}</span>
                   </button>
+                  {me.isAdmin && (
+                    <button
+                      onClick={() => remove(t)}
+                      title="Delete task permanently"
+                      aria-label={`Delete task ${t.title}`}
+                      className="press mt-1 shrink-0 rounded-lg p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
