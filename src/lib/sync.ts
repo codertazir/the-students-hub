@@ -67,6 +67,69 @@ function mergeTyping(
   return out;
 }
 
+/**
+ * Shared keys holding lists of `{ id }` records. These are merged item by item
+ * so an unsaved local edit to one note never discards another member's live
+ * answer on a different note (blanket last-write-wins used to lose data).
+ */
+const ITEM_KEYS = [
+  "announcements",
+  "suggestions",
+  "tasks",
+  "notifications",
+  "notes",
+  "events",
+  "planProjects",
+  "planTasks",
+] as const satisfies readonly SharedKey[];
+
+type Item = { id: string };
+type ItemMap = Record<string, string>;
+
+const isItemKey = (key: SharedKey): key is (typeof ITEM_KEYS)[number] =>
+  (ITEM_KEYS as readonly SharedKey[]).includes(key);
+
+function itemMap(value: unknown): ItemMap {
+  const out: ItemMap = {};
+  if (!Array.isArray(value)) return out;
+  for (const item of value as Item[]) {
+    if (item && typeof item.id === "string") out[item.id] = JSON.stringify(item);
+  }
+  return out;
+}
+
+/**
+ * Three-way merge of one list: `base` is what the server last confirmed for
+ * this device, so anything that differs from it locally is an unsaved edit and
+ * wins; everything else takes the server's copy, including remote deletions.
+ */
+function mergeItems(local: unknown, remote: unknown, base: ItemMap): Item[] {
+  if (!Array.isArray(remote)) return Array.isArray(local) ? (local as Item[]) : [];
+  const localList = Array.isArray(local) ? (local as Item[]) : [];
+  const localById = new Map(localList.filter((i) => i && typeof i.id === "string").map((i) => [i.id, i]));
+  const remoteById = new Map(
+    (remote as Item[]).filter((i) => i && typeof i.id === "string").map((i) => [i.id, i]),
+  );
+  const out: Item[] = [];
+  for (const [id, remoteItem] of remoteById) {
+    const localItem = localById.get(id);
+    if (!localItem) {
+      // Absent locally: brand new on the server, unless this device deleted it.
+      if (base[id] === undefined) out.push(remoteItem);
+      continue;
+    }
+    const locallyEdited = JSON.stringify(localItem) !== base[id];
+    out.push(locallyEdited ? localItem : remoteItem);
+  }
+  for (const item of localList) {
+    if (!item || typeof item.id !== "string" || remoteById.has(item.id)) continue;
+    // Keep rows created locally, and rows we edited while someone removed them.
+    if (base[item.id] === undefined || JSON.stringify(item) !== base[item.id]) out.push(item);
+  }
+  return out;
+}
+
+
 export function startSync() {
   if (typeof window === "undefined") return () => undefined;
 
