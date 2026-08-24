@@ -147,58 +147,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return startSync();
   }, [user?.id]);
 
-  // Pull notes/events (and admin monitoring data) from PostgreSQL.
+  /**
+   * Notes and events live in the shared PostgreSQL document (shared_state),
+   * which the sync loop keeps authoritative across devices. The notes/events
+   * tables are a durable secondary copy used only to RECOVER rows that the
+   * shared document doesn't have yet — adopting a table row on top of an
+   * existing note used to overwrite fresher content (and then push that stale
+   * copy to every other device), which is why note edits and member responses
+   * appeared to "not save".
+   */
   const hydrate = useCallback(async (isAdmin: boolean) => {
     try {
       const { notes, events } = await getContent();
       setDB((d) => {
-        // First run against an empty database: keep the local drafts so the
-        // mirror effect below pushes them up instead of wiping the UI.
-        if (notes.length > 0) {
-          d.notes = notes.map((n, i) => {
-            const local = d.notes.find((x) => x.id === n.id);
-            const payload = parseJSON<Partial<Note>>(n.content);
-            return {
-              id: n.id,
-              number: payload?.number ?? local?.number ?? i + 1,
-              title: n.title,
-              dateLabel: payload?.dateLabel ?? local?.dateLabel ?? n.date.slice(0, 10),
-              meetingDate: n.date.slice(0, 10),
-              previewEmoji: payload?.previewEmoji ?? local?.previewEmoji ?? "📝",
-              previewAccent: payload?.previewAccent ?? local?.previewAccent ?? previewAccent(i),
-              blocks: payload?.blocks ??
-                local?.blocks ?? [{ id: `b-${n.id}`, kind: "text" as const, content: n.content }],
-              createdAt: local?.createdAt ?? new Date(n.date).getTime(),
-            };
+        const noteIds = new Set(d.notes.map((n) => n.id));
+        const missingNotes = notes.filter((n) => !noteIds.has(n.id));
+        missingNotes.forEach((n, i) => {
+          const payload = parseJSON<Partial<Note>>(n.content);
+          d.notes.push({
+            id: n.id,
+            number: payload?.number ?? d.notes.length + i + 1,
+            title: n.title,
+            dateLabel: payload?.dateLabel ?? n.date.slice(0, 10),
+            meetingDate: n.date.slice(0, 10),
+            previewEmoji: payload?.previewEmoji ?? "📝",
+            previewAccent: payload?.previewAccent ?? previewAccent(i),
+            blocks: payload?.blocks ?? [
+              { id: `b-${n.id}`, kind: "text" as const, content: n.content },
+            ],
+            createdAt: new Date(n.date).getTime(),
           });
-        }
-        if (events.length > 0) {
-          d.events = events.map((e, i) => {
-            const local = d.events.find((x) => x.id === e.id);
-            const payload = parseJSON<Partial<ClubEvent>>(e.description);
-            return {
-              id: e.id,
-              number: payload?.number ?? local?.number ?? i + 1,
-              title: e.title,
-              dateLabel: payload?.dateLabel ?? local?.dateLabel ?? e.date.slice(0, 10),
-              date: e.date.slice(0, 10),
-              location: e.location ?? "",
-              previewEmoji: payload?.previewEmoji ?? local?.previewEmoji ?? "🎉",
-              previewAccent: payload?.previewAccent ?? local?.previewAccent ?? previewAccent(i),
-              completed: payload?.completed ?? local?.completed ?? false,
-              blocks: payload?.blocks ??
-                local?.blocks ?? [
-                  { id: `b-${e.id}`, kind: "text" as const, content: e.description },
-                ],
-              cards: payload?.cards ?? local?.cards ?? [],
-              comments: local?.comments ?? [],
-              createdAt: local?.createdAt ?? new Date(e.date).getTime(),
-            };
+        });
+        const eventIds = new Set(d.events.map((e) => e.id));
+        const missingEvents = events.filter((e) => !eventIds.has(e.id));
+        missingEvents.forEach((e, i) => {
+          const payload = parseJSON<Partial<ClubEvent>>(e.description);
+          d.events.push({
+            id: e.id,
+            number: payload?.number ?? d.events.length + i + 1,
+            title: e.title,
+            dateLabel: payload?.dateLabel ?? e.date.slice(0, 10),
+            date: e.date.slice(0, 10),
+            location: e.location ?? "",
+            previewEmoji: payload?.previewEmoji ?? "🎉",
+            previewAccent: payload?.previewAccent ?? previewAccent(i),
+            completed: payload?.completed ?? false,
+            blocks: payload?.blocks ?? [
+              { id: `b-${e.id}`, kind: "text" as const, content: e.description },
+            ],
+            cards: payload?.cards ?? [],
+            comments: [],
+            createdAt: new Date(e.date).getTime(),
           });
-        }
+        });
       });
-    } catch {
-      /* offline or not signed in — keep whatever is cached */
+    } catch (error) {
+      console.error("[hub] could not load notes and events", error);
     }
     try {
       const rows = await getActivity();
@@ -216,8 +220,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...(r.os ? { os: r.os } : {}),
         }));
       });
-    } catch {
-      /* keep local activity */
+    } catch (error) {
+      console.error("[hub] could not load the activity log", error);
     }
     if (!isAdmin) return;
     try {
@@ -237,7 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }));
       });
     } catch {
-      /* not an admin */
+      /* member accounts are admin-only — ignore for regular members */
     }
   }, []);
 
@@ -246,17 +250,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void hydrate(user.isAdmin);
   }, [user?.id, user?.isAdmin, hydrate]);
 
-  // Mirror admin edits of notes/events back into PostgreSQL.
-  const synced = useRef<{ notes: Set<string>; events: Set<string> } | null>(null);
+  /**
+   * Mirrors notes/events into their own tables. Only rows whose payload
+   * actually changed are written, so typing in a note no longer fires one
+   * request per note on every keystroke.
+   */
+  const mirrored = useRef<{ notes: Map<string, string>; events: Map<string, string> } | null>(null);
   useEffect(() => {
     if (!user?.isAdmin) return;
     const timer = setTimeout(() => {
       void (async () => {
-        const noteIds = new Set(db.notes.map((n) => n.id));
-        const eventIds = new Set(db.events.map((e) => e.id));
-        const prev = synced.current;
+        const notePayloads = new Map(
+          db.notes.map((n) => [
+            n.id,
+            JSON.stringify({
+              title: n.title,
+              date: n.meetingDate,
+              number: n.number,
+              dateLabel: n.dateLabel,
+              previewEmoji: n.previewEmoji,
+              previewAccent: n.previewAccent,
+              blocks: n.blocks,
+            }),
+          ]),
+        );
+        const eventPayloads = new Map(
+          db.events.map((e) => [
+            e.id,
+            JSON.stringify({
+              title: e.title,
+              date: e.date,
+              location: e.location,
+              number: e.number,
+              dateLabel: e.dateLabel,
+              previewEmoji: e.previewEmoji,
+              previewAccent: e.previewAccent,
+              completed: e.completed,
+              blocks: e.blocks,
+              cards: e.cards,
+            }),
+          ]),
+        );
+        const prev = mirrored.current;
         try {
           for (const n of db.notes) {
+            if (prev && prev.notes.get(n.id) === notePayloads.get(n.id)) continue;
             await upsertNote({
               data: {
                 id: n.id,
@@ -273,6 +311,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
           }
           for (const e of db.events) {
+            if (prev && prev.events.get(e.id) === eventPayloads.get(e.id)) continue;
             await upsertEvent({
               data: {
                 id: e.id,
@@ -292,18 +331,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
           }
           if (prev) {
-            for (const id of prev.notes) if (!noteIds.has(id)) await removeNote({ data: { id } });
-            for (const id of prev.events)
-              if (!eventIds.has(id)) await removeEvent({ data: { id } });
+            for (const id of prev.notes.keys())
+              if (!notePayloads.has(id)) await removeNote({ data: { id } });
+            for (const id of prev.events.keys())
+              if (!eventPayloads.has(id)) await removeEvent({ data: { id } });
           }
-        } catch {
-          /* transient network issue — retried on the next change */
+          mirrored.current = { notes: notePayloads, events: eventPayloads };
+        } catch (error) {
+          // Leave the previous snapshot in place so the next change retries.
+          console.error("[hub] could not mirror notes and events", error);
         }
-        synced.current = { notes: noteIds, events: eventIds };
       })();
     }, 800);
     return () => clearTimeout(timer);
   }, [db.notes, db.events, user?.isAdmin]);
+
 
   const signIn = useCallback(
     async (email: string, password: string) => {
