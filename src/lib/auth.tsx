@@ -20,7 +20,7 @@ import {
   type Note,
   type User,
 } from "./store";
-import { startSync } from "./sync";
+import { flushShared, startSync } from "./sync";
 import { isStaff, normalizeRole } from "./permissions";
 
 import {
@@ -360,12 +360,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     const current = getDB().sessionUserId;
-    setDB((d) => {
-      if (current) delete d.presence[current];
-      d.sessionUserId = null;
-    });
-    void signOutFn();
+    // Save anything still pending BEFORE the session ends, otherwise the last
+    // edits would be pushed with no session and silently dropped.
+    void flushShared()
+      .catch(() => undefined)
+      .finally(() => {
+        setDB((d) => {
+          if (current) delete d.presence[current];
+          d.sessionUserId = null;
+        });
+        void signOutFn();
+      });
   }, []);
+
 
   /**
    * Writes the change to PostgreSQL and then re-seeds the local cache from the

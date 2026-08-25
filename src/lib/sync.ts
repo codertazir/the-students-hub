@@ -129,6 +129,44 @@ function mergeItems(local: unknown, remote: unknown, base: ItemMap): Item[] {
   return out;
 }
 
+/**
+ * Same three-way merge for plain object maps (e.g. `suggestionState`), so one
+ * member's unsaved mark never wipes another member's saved mark.
+ */
+function mergeRecords(
+  local: unknown,
+  remote: unknown,
+  base: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  if (!remote || typeof remote !== "object" || Array.isArray(remote)) {
+    return (local ?? {}) as Record<string, unknown>;
+  }
+  const localObj = (local && typeof local === "object" ? local : {}) as Record<string, unknown>;
+  const remoteObj = remote as Record<string, unknown>;
+  const baseObj = (base ?? {}) as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(remoteObj)) {
+    const localHas = Object.prototype.hasOwnProperty.call(localObj, k);
+    if (!localHas) {
+      if (!Object.prototype.hasOwnProperty.call(baseObj, k)) out[k] = v;
+      continue;
+    }
+    const edited = JSON.stringify(localObj[k]) !== JSON.stringify(baseObj[k]);
+    out[k] = edited ? localObj[k] : v;
+  }
+  for (const [k, v] of Object.entries(localObj)) {
+    if (Object.prototype.hasOwnProperty.call(remoteObj, k)) continue;
+    if (
+      !Object.prototype.hasOwnProperty.call(baseObj, k) ||
+      JSON.stringify(v) !== JSON.stringify(baseObj[k])
+    ) {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
+
 
 export function startSync() {
   if (typeof window === "undefined") return () => undefined;
@@ -138,6 +176,8 @@ export function startSync() {
   let applying = false;
   /** Fingerprint of what the server is known to hold, per key. */
   let confirmed = fingerprint(snapshot(getDB()));
+  /** The actual values the server last confirmed — the base for 3-way merges. */
+  let confirmedDoc: Doc = snapshot(getDB());
   let pushTimer: ReturnType<typeof setTimeout> | null = null;
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
   let backoff = 1_000;
@@ -168,6 +208,23 @@ export function startSync() {
           d.typing = mergeTyping(d.typing, value as Record<string, { name: string; ts: number }>);
           continue;
         }
+        if (isItemKey(key)) {
+          // Item-by-item three-way merge: an unsaved local edit to one row keeps
+          // winning while every other row still follows the server. Without this
+          // a dirty key discarded ALL remote changes and then pushed a stale
+          // list back, which is how other people's note edits disappeared.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (d as any)[key] = mergeItems(d[key], value, itemMap(confirmedDoc[key]));
+          continue;
+        }
+        if (key === "suggestionState") {
+          d.suggestionState = mergeRecords(
+            d.suggestionState,
+            value,
+            confirmedDoc[key] as Record<string, unknown> | undefined,
+          ) as DB["suggestionState"];
+          continue;
+        }
         if (dirty.has(key)) continue; // unsaved local edit wins until it's pushed
         if (key === "homeCards") {
           d.homeCards = mergeHomeCards(value as DB["homeCards"]);
@@ -182,11 +239,23 @@ export function startSync() {
       }
     });
     applying = false;
-    // Keys we accepted from the server are now in sync; dirty keys stay dirty.
+    // Whatever we took verbatim from the server is now the confirmed base;
+    // merged keys keep whatever the server sent as their base so the next merge
+    // can tell local edits from remote ones.
     const now = fingerprint(snapshot(getDB()));
-    for (const key of SHARED_KEYS) if (!dirty.has(key)) confirmed[key] = now[key]!;
+    const merged = snapshot(getDB());
+    for (const key of SHARED_KEYS) {
+      if (doc[key] !== undefined && doc[key] !== null) confirmedDoc[key] = doc[key];
+      if (!dirty.has(key)) {
+        confirmed[key] = now[key]!;
+        confirmedDoc[key] = merged[key];
+      }
+    }
+    // A merge may have pulled remote rows into a dirty key — re-check.
+    markDirty();
     if (dirty.size > 0) schedulePush(0);
   };
+
 
   const pull = async () => {
     const res = await pullShared();
@@ -216,12 +285,24 @@ export function startSync() {
     for (const key of keys) patch[key] = current[key];
     try {
       const res = await pushShared({ data: { patch: patch as Record<string, unknown> } });
-      if (res) version = res.version;
+      if (!res) {
+        // Signed out (or session expired): nothing was written, so keep the
+        // keys dirty and try again on the next tick rather than pretending
+        // the server has them.
+        pushing = false;
+        return;
+      }
+      version = res.version;
       backoff = 1_000;
       warned = false;
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+      }
       const now = fingerprint(snapshot(getDB()));
       for (const key of keys) {
         confirmed[key] = sent[key]!;
+        confirmedDoc[key] = current[key];
         // Changed again while the request was in flight → keep it dirty.
         if (now[key] === sent[key]) dirty.delete(key);
       }
@@ -231,13 +312,18 @@ export function startSync() {
         warned = true;
         toast.error("Couldn't save your changes — retrying…");
       }
-      retryTimer = setTimeout(() => void pushPending(), backoff);
+      if (retryTimer) clearTimeout(retryTimer);
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        void pushPending();
+      }, backoff);
       backoff = Math.min(backoff * 2, MAX_BACKOFF_MS);
     } finally {
       pushing = false;
     }
     if (dirty.size > 0 && !retryTimer) schedulePush(PUSH_DEBOUNCE_MS);
   };
+
 
   const schedulePush = (delay: number) => {
     if (pushTimer) clearTimeout(pushTimer);
@@ -280,8 +366,18 @@ export function startSync() {
   document.addEventListener("visibilitychange", onVisible);
   window.addEventListener("pagehide", onUnload);
 
+  flushActive = async () => {
+    markDirty();
+    if (pushTimer) {
+      clearTimeout(pushTimer);
+      pushTimer = null;
+    }
+    await pushPending();
+  };
+
   return () => {
     stopped = true;
+    flushActive = null;
     clearInterval(timer);
     if (pushTimer) clearTimeout(pushTimer);
     if (retryTimer) clearTimeout(retryTimer);
@@ -290,3 +386,12 @@ export function startSync() {
     unsubscribe();
   };
 }
+
+/** Module-level handle so sign-out can save pending edits before the session ends. */
+let flushActive: (() => Promise<void>) | null = null;
+
+/** Pushes any unsaved shared changes to PostgreSQL right now. */
+export async function flushShared() {
+  if (flushActive) await flushActive();
+}
+
