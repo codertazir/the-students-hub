@@ -366,8 +366,18 @@ export function startSync() {
   document.addEventListener("visibilitychange", onVisible);
   window.addEventListener("pagehide", onUnload);
 
+  flushActive = async () => {
+    markDirty();
+    if (pushTimer) {
+      clearTimeout(pushTimer);
+      pushTimer = null;
+    }
+    await pushPending();
+  };
+
   return () => {
     stopped = true;
+    flushActive = null;
     clearInterval(timer);
     if (pushTimer) clearTimeout(pushTimer);
     if (retryTimer) clearTimeout(retryTimer);
@@ -376,3 +386,12 @@ export function startSync() {
     unsubscribe();
   };
 }
+
+/** Module-level handle so sign-out can save pending edits before the session ends. */
+let flushActive: (() => Promise<void>) | null = null;
+
+/** Pushes any unsaved shared changes to PostgreSQL right now. */
+export async function flushShared() {
+  if (flushActive) await flushActive();
+}
+
