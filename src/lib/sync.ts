@@ -176,6 +176,8 @@ export function startSync() {
   let applying = false;
   /** Fingerprint of what the server is known to hold, per key. */
   let confirmed = fingerprint(snapshot(getDB()));
+  /** The actual values the server last confirmed — the base for 3-way merges. */
+  let confirmedDoc: Doc = snapshot(getDB());
   let pushTimer: ReturnType<typeof setTimeout> | null = null;
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
   let backoff = 1_000;
@@ -206,6 +208,23 @@ export function startSync() {
           d.typing = mergeTyping(d.typing, value as Record<string, { name: string; ts: number }>);
           continue;
         }
+        if (isItemKey(key)) {
+          // Item-by-item three-way merge: an unsaved local edit to one row keeps
+          // winning while every other row still follows the server. Without this
+          // a dirty key discarded ALL remote changes and then pushed a stale
+          // list back, which is how other people's note edits disappeared.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (d as any)[key] = mergeItems(d[key], value, itemMap(confirmedDoc[key]));
+          continue;
+        }
+        if (key === "suggestionState") {
+          d.suggestionState = mergeRecords(
+            d.suggestionState,
+            value,
+            confirmedDoc[key] as Record<string, unknown> | undefined,
+          ) as DB["suggestionState"];
+          continue;
+        }
         if (dirty.has(key)) continue; // unsaved local edit wins until it's pushed
         if (key === "homeCards") {
           d.homeCards = mergeHomeCards(value as DB["homeCards"]);
@@ -220,11 +239,23 @@ export function startSync() {
       }
     });
     applying = false;
-    // Keys we accepted from the server are now in sync; dirty keys stay dirty.
+    // Whatever we took verbatim from the server is now the confirmed base;
+    // merged keys keep whatever the server sent as their base so the next merge
+    // can tell local edits from remote ones.
     const now = fingerprint(snapshot(getDB()));
-    for (const key of SHARED_KEYS) if (!dirty.has(key)) confirmed[key] = now[key]!;
+    const merged = snapshot(getDB());
+    for (const key of SHARED_KEYS) {
+      if (doc[key] !== undefined && doc[key] !== null) confirmedDoc[key] = doc[key];
+      if (!dirty.has(key)) {
+        confirmed[key] = now[key]!;
+        confirmedDoc[key] = merged[key];
+      }
+    }
+    // A merge may have pulled remote rows into a dirty key — re-check.
+    markDirty();
     if (dirty.size > 0) schedulePush(0);
   };
+
 
   const pull = async () => {
     const res = await pullShared();
