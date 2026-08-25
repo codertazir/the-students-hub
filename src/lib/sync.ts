@@ -285,12 +285,24 @@ export function startSync() {
     for (const key of keys) patch[key] = current[key];
     try {
       const res = await pushShared({ data: { patch: patch as Record<string, unknown> } });
-      if (res) version = res.version;
+      if (!res) {
+        // Signed out (or session expired): nothing was written, so keep the
+        // keys dirty and try again on the next tick rather than pretending
+        // the server has them.
+        pushing = false;
+        return;
+      }
+      version = res.version;
       backoff = 1_000;
       warned = false;
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+      }
       const now = fingerprint(snapshot(getDB()));
       for (const key of keys) {
         confirmed[key] = sent[key]!;
+        confirmedDoc[key] = current[key];
         // Changed again while the request was in flight → keep it dirty.
         if (now[key] === sent[key]) dirty.delete(key);
       }
@@ -300,13 +312,18 @@ export function startSync() {
         warned = true;
         toast.error("Couldn't save your changes — retrying…");
       }
-      retryTimer = setTimeout(() => void pushPending(), backoff);
+      if (retryTimer) clearTimeout(retryTimer);
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        void pushPending();
+      }, backoff);
       backoff = Math.min(backoff * 2, MAX_BACKOFF_MS);
     } finally {
       pushing = false;
     }
     if (dirty.size > 0 && !retryTimer) schedulePush(PUSH_DEBOUNCE_MS);
   };
+
 
   const schedulePush = (delay: number) => {
     if (pushTimer) clearTimeout(pushTimer);
