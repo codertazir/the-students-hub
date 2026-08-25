@@ -129,6 +129,44 @@ function mergeItems(local: unknown, remote: unknown, base: ItemMap): Item[] {
   return out;
 }
 
+/**
+ * Same three-way merge for plain object maps (e.g. `suggestionState`), so one
+ * member's unsaved mark never wipes another member's saved mark.
+ */
+function mergeRecords(
+  local: unknown,
+  remote: unknown,
+  base: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  if (!remote || typeof remote !== "object" || Array.isArray(remote)) {
+    return (local ?? {}) as Record<string, unknown>;
+  }
+  const localObj = (local && typeof local === "object" ? local : {}) as Record<string, unknown>;
+  const remoteObj = remote as Record<string, unknown>;
+  const baseObj = (base ?? {}) as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(remoteObj)) {
+    const localHas = Object.prototype.hasOwnProperty.call(localObj, k);
+    if (!localHas) {
+      if (!Object.prototype.hasOwnProperty.call(baseObj, k)) out[k] = v;
+      continue;
+    }
+    const edited = JSON.stringify(localObj[k]) !== JSON.stringify(baseObj[k]);
+    out[k] = edited ? localObj[k] : v;
+  }
+  for (const [k, v] of Object.entries(localObj)) {
+    if (Object.prototype.hasOwnProperty.call(remoteObj, k)) continue;
+    if (
+      !Object.prototype.hasOwnProperty.call(baseObj, k) ||
+      JSON.stringify(v) !== JSON.stringify(baseObj[k])
+    ) {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
+
 
 export function startSync() {
   if (typeof window === "undefined") return () => undefined;
