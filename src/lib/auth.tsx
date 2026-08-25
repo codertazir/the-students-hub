@@ -20,7 +20,7 @@ import {
   type Note,
   type User,
 } from "./store";
-import { startSync } from "./sync";
+import { flushShared, startSync } from "./sync";
 import { isStaff, normalizeRole } from "./permissions";
 
 import {
