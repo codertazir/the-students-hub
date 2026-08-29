@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowRight, CalendarDays, CheckCircle2, Circle, NotebookPen, Wallet } from "lucide-react";
-import logo from "@/assets/students-hub-logo.png.asset.json";
+import logo from "@/assets/students-hub-logo.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -173,7 +173,7 @@ function Landing() {
       <div className="flex w-full max-w-3xl flex-col items-center text-center">
         <h1 className="rise-in sr-only">The Students Hub</h1>
         <img
-          src={logo.url}
+          src={logo}
           alt="The Students Hub"
           width={1512}
           height={521}
