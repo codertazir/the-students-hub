@@ -396,7 +396,7 @@ function HomePage() {
                 { to: "/admin/home", label: "Customise the home page" },
                 { to: "/admin/meeting", label: "Edit the weekly meeting" },
                 { to: "/admin/funds", label: "Update club funds" },
-                { to: "/admin/tasks", label: "Manage tasks" },
+                { to: "/tasks", label: "Manage tasks" },
                 { to: "/admin/monitoring", label: "Review sign-in activity" },
               ].map((l) => (
                 <Link

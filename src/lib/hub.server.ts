@@ -202,13 +202,19 @@ export async function signInUser(email: string, password: string, meta: LoginMet
       });
       throw new Error("Incorrect password for this account.");
     }
-    // Keep the admin-recoverable copy in sync (backfill for older accounts).
-    if (!isBootstrapAdmin && !existing.passwordCipher) {
-      await prisma.user.update({
-        where: { id: existing.id },
-        data: { passwordCipher: await encryptSecret(password) },
-      });
+    // Keep the admin-recoverable copy in sync. This also self-heals accounts
+    // whose ciphertext was written under a previous SESSION_SECRET (it can no
+    // longer be decrypted, so it is rewritten with the current key).
+    if (!isBootstrapAdmin) {
+      const stored = await decryptSecret(existing.passwordCipher);
+      if (stored !== password) {
+        await prisma.user.update({
+          where: { id: existing.id },
+          data: { passwordCipher: await encryptSecret(password) },
+        });
+      }
     }
+
     user = existing;
   } else {
     user = await prisma.user.create({
