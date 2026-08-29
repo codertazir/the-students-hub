@@ -28,7 +28,7 @@ import {
   type NoteBlockKind,
 } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import logo from "@/assets/students-hub-logo.png.asset.json";
+import logo from "@/assets/students-hub-logo.png";
 
 export const Route = createFileRoute("/events/$id")({
   head: () => ({
@@ -76,7 +76,7 @@ function EventDetailPage() {
         >
           <ArrowLeft className="size-4" />
         </Link>
-        <img src={logo.url} alt="The Students Hub" className="h-7 w-auto shrink-0" />
+        <img src={logo} alt="The Students Hub" className="h-7 w-auto shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">
             {event.title} <span className="text-muted-foreground">#{event.number}</span>
