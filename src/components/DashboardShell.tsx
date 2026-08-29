@@ -18,7 +18,7 @@ import {
   Map,
   ShieldCheck,
 } from "lucide-react";
-import logo from "@/assets/students-hub-logo.png.asset.json";
+import logo from "@/assets/students-hub-logo.png";
 import symbol from "@/assets/students-hub-symbol.png.asset.json";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -187,7 +187,7 @@ export function DashboardShell() {
               className="press flex min-w-0 flex-1 items-center transition-opacity hover:opacity-80"
             >
               <img
-                src={logo.url}
+                src={logo}
                 alt="The Students Hub"
                 className="h-8 w-auto shrink-0 object-contain"
               />
