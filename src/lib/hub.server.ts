@@ -782,19 +782,31 @@ export async function readSharedVersion(): Promise<number | null> {
   return row?.version ?? 0;
 }
 
-/** Shallow top-level merge so two devices editing different areas don't clash. */
+/**
+ * Shallow top-level merge so two devices editing different areas don't clash.
+ *
+ * Done in ONE atomic statement (`data || excluded.data`) instead of
+ * read-then-write: with a JS-side merge, two devices pushing at the same time
+ * both read the same snapshot and the slower write silently dropped the other
+ * device's keys. Postgres now performs the merge under the row lock.
+ */
 export async function writeShared(patch: Json): Promise<{ version: number; data: Json } | null> {
   if (!(await currentUser())) return null;
   const prisma = getPrisma();
-  const existing = await prisma.sharedState.findUnique({ where: { id: "hub" } });
-  const merged = { ...((existing?.data as Json) ?? {}), ...patch };
-  const row = await prisma.sharedState.upsert({
-    where: { id: "hub" },
-    update: { data: merged, version: { increment: 1 } },
-    create: { id: "hub", data: merged, version: 1 },
-  });
-  return { version: row.version, data: (row.data as Json) ?? {} };
+  const rows = await prisma.$queryRaw<{ version: number; data: Json }[]>`
+    INSERT INTO shared_state (id, data, version, "updatedAt")
+    VALUES ('hub', ${JSON.stringify(patch)}::jsonb, 1, now())
+    ON CONFLICT (id) DO UPDATE
+      SET data = shared_state.data || excluded.data,
+          version = shared_state.version + 1,
+          "updatedAt" = now()
+    RETURNING version, data
+  `;
+  const row = rows[0];
+  if (!row) return { version: 0, data: {} };
+  return { version: Number(row.version), data: row.data ?? {} };
 }
+
 
 /* ---------------- activity trail ---------------- */
 
