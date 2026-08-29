@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import logo from "@/assets/students-hub-logo.png.asset.json";
+import logo from "@/assets/students-hub-logo.png";
 import { NoteBlocksEditor } from "@/components/NoteBlocksEditor";
 import { useAuth, useDB } from "@/lib/auth";
 import { setDB, uid, type NoteBlock, type NoteBlockKind } from "@/lib/store";
@@ -100,7 +100,7 @@ function NoteDetailPage() {
             >
               <ArrowLeft className="size-4" />
             </Link>
-            <img src={logo.url} alt="The Students Hub" className="h-7 w-auto shrink-0" />
+            <img src={logo} alt="The Students Hub" className="h-7 w-auto shrink-0" />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold leading-tight">
                 {note.title} <span className="text-muted-foreground">#{note.number}</span>
