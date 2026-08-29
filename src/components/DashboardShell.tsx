@@ -19,7 +19,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import logo from "@/assets/students-hub-logo.png";
-import symbol from "@/assets/students-hub-symbol.png.asset.json";
+import symbol from "@/assets/students-hub-symbol.png";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -200,7 +200,7 @@ export function DashboardShell() {
               title="The Students Hub"
             >
               <img
-                src={symbol.url}
+                src={symbol}
                 alt="The Students Hub"
                 className="h-8 w-8 shrink-0 object-contain"
               />
