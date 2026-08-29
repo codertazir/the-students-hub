@@ -48,7 +48,7 @@ const ADMIN_NAV = [
   { to: "/admin/home", label: "Home layout", icon: LayoutGrid },
   { to: "/admin/meeting", label: "Meeting", icon: CalendarDays },
   { to: "/admin/funds", label: "Funds", icon: Wallet },
-  { to: "/admin/tasks", label: "Tasks", icon: ListTodo },
+  
   { to: "/admin/members", label: "Members", icon: Users, permission: "manage:members" },
   { to: "/admin/monitoring", label: "Monitoring", icon: ShieldCheck, permission: "view:monitoring" },
 ] as const satisfies readonly {
