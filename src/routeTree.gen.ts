@@ -29,7 +29,6 @@ import { Route as DashAdminMeetingRouteImport } from './routes/_dash.admin.meeti
 import { Route as DashAdminMembersRouteImport } from './routes/_dash.admin.members'
 import { Route as DashAdminMonitoringRouteImport } from './routes/_dash.admin.monitoring'
 import { Route as DashAdminSuggestionsRouteImport } from './routes/_dash.admin.suggestions'
-import { Route as DashAdminTasksRouteImport } from './routes/_dash.admin.tasks'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -130,11 +129,6 @@ const DashAdminSuggestionsRoute = DashAdminSuggestionsRouteImport.update({
   path: '/admin/suggestions',
   getParentRoute: () => DashRoute,
 } as any)
-const DashAdminTasksRoute = DashAdminTasksRouteImport.update({
-  id: '/admin/tasks',
-  path: '/admin/tasks',
-  getParentRoute: () => DashRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -156,7 +150,6 @@ export interface FileRoutesByFullPath {
   '/admin/members': typeof DashAdminMembersRoute
   '/admin/monitoring': typeof DashAdminMonitoringRoute
   '/admin/suggestions': typeof DashAdminSuggestionsRoute
-  '/admin/tasks': typeof DashAdminTasksRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -178,7 +171,6 @@ export interface FileRoutesByTo {
   '/admin/members': typeof DashAdminMembersRoute
   '/admin/monitoring': typeof DashAdminMonitoringRoute
   '/admin/suggestions': typeof DashAdminSuggestionsRoute
-  '/admin/tasks': typeof DashAdminTasksRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -202,7 +194,6 @@ export interface FileRoutesById {
   '/_dash/admin/members': typeof DashAdminMembersRoute
   '/_dash/admin/monitoring': typeof DashAdminMonitoringRoute
   '/_dash/admin/suggestions': typeof DashAdminSuggestionsRoute
-  '/_dash/admin/tasks': typeof DashAdminTasksRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -226,7 +217,6 @@ export interface FileRouteTypes {
     | '/admin/members'
     | '/admin/monitoring'
     | '/admin/suggestions'
-    | '/admin/tasks'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -248,7 +238,6 @@ export interface FileRouteTypes {
     | '/admin/members'
     | '/admin/monitoring'
     | '/admin/suggestions'
-    | '/admin/tasks'
   id:
     | '__root__'
     | '/'
@@ -271,7 +260,6 @@ export interface FileRouteTypes {
     | '/_dash/admin/members'
     | '/_dash/admin/monitoring'
     | '/_dash/admin/suggestions'
-    | '/_dash/admin/tasks'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -427,13 +415,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashAdminSuggestionsRouteImport
       parentRoute: typeof DashRoute
     }
-    '/_dash/admin/tasks': {
-      id: '/_dash/admin/tasks'
-      path: '/admin/tasks'
-      fullPath: '/admin/tasks'
-      preLoaderRoute: typeof DashAdminTasksRouteImport
-      parentRoute: typeof DashRoute
-    }
   }
 }
 
@@ -450,7 +431,6 @@ interface DashRouteChildren {
   DashAdminMembersRoute: typeof DashAdminMembersRoute
   DashAdminMonitoringRoute: typeof DashAdminMonitoringRoute
   DashAdminSuggestionsRoute: typeof DashAdminSuggestionsRoute
-  DashAdminTasksRoute: typeof DashAdminTasksRoute
 }
 
 const DashRouteChildren: DashRouteChildren = {
@@ -466,7 +446,6 @@ const DashRouteChildren: DashRouteChildren = {
   DashAdminMembersRoute: DashAdminMembersRoute,
   DashAdminMonitoringRoute: DashAdminMonitoringRoute,
   DashAdminSuggestionsRoute: DashAdminSuggestionsRoute,
-  DashAdminTasksRoute: DashAdminTasksRoute,
 }
 
 const DashRouteWithChildren = DashRoute._addFileChildren(DashRouteChildren)
